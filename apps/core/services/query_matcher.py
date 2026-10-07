@@ -68,12 +68,17 @@ in on at to from by for with and or of is are am do does did be been being
 this that these those it its as not no nor but without except excluding
 other than plus also instead rather make about tell whats vs versus the a an
 year years model models make variant variants new2
-hi hello hey yo thanks thank bye tata ok okay yaar ji haan nahi
+hi hello hey yo thanks thank bye ok okay yaar ji haan nahi
 chahiye chaahiye chahta chahti mujhe mein mai ke ki ka liye andar antargat
 sabse sasti sasta gadi gaadi gaadiyan dikhao dikhaye dikha dikhana karo kro
 hinglish wala wali aur bhai bhaiya
 """.split()
 
+# NOTE: "tata" is deliberately NOT in this vocabulary even though it can be a
+# goodbye word. It is also a real inventory brand (Tata Motors). A standalone
+# "tata"/"bye" is still classified as a greeting by GREETING_RE before this
+# vocabulary is ever consulted, while "tata cars" must resolve the Tata brand
+# through the lazy inventory lookup below.
 VOCAB = frozenset(_VOCAB_WORDS)
 
 GREETING_RE = re.compile(
@@ -658,6 +663,26 @@ def _resolve_identity(lowered: str, lookup: Optional[dict]) -> tuple:
             if re.search(rf"\b{re.escape(cand_brand.lower())}\b", lowered):
                 brand = cand_brand
                 known_tokens.update(cand_brand.lower().split())
+                break
+
+    if brand is None and brands:
+        # Partial-word brand resolution for multi-word inventory brands such
+        # as "Maruti Suzuki": a natural query like "Maruti cars" names only
+        # the first word, so match individual brand words (whole-word,
+        # longest brand first) instead of requiring the full brand string.
+        # Generic vocabulary words (e.g. "jeep" as a vehicle type) are never
+        # treated as brand fragments.
+        for cand_brand in sorted(brands, key=len, reverse=True):
+            for word in cand_brand.lower().split():
+                if (
+                    len(word) >= 3
+                    and word not in VOCAB
+                    and re.search(rf"\b{re.escape(word)}\b", lowered)
+                ):
+                    brand = cand_brand
+                    known_tokens.add(word)
+                    break
+            if brand is not None:
                 break
 
     unknown = [

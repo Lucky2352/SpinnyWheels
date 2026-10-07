@@ -348,6 +348,50 @@ class TokenVerificationTests(TestCase):
             self._verify(token, jwks)
 
 
+class JwksCacheTests(TestCase):
+    """The JWKS document is fetched once and shared by every authenticator.
+
+    DRF builds one authenticator instance per request, so a per-instance
+    cache would refetch the signing keys over the network on every single
+    authenticated API call.
+    """
+
+    def setUp(self):
+        self._previous = SupabaseJWTAuthentication._jwks_cache
+        SupabaseJWTAuthentication._jwks_cache = None
+
+    def tearDown(self):
+        SupabaseJWTAuthentication._jwks_cache = self._previous
+
+    def test_second_instance_reuses_fetched_keys_without_http(self):
+        jwks = {"keys": []}
+
+        with patch(
+            "apps.core.authentication.supabase.httpx.get"
+        ) as mock_get:
+            mock_get.return_value.json.return_value = jwks
+            mock_get.return_value.raise_for_status.return_value = None
+
+            first = SupabaseJWTAuthentication()._get_jwks()
+            second = SupabaseJWTAuthentication()._get_jwks()
+
+        self.assertEqual(first, jwks)
+        self.assertEqual(second, jwks)
+        self.assertEqual(mock_get.call_count, 1)
+
+    def test_instance_override_still_takes_precedence(self):
+        override = {"keys": [{"kid": "test-only"}]}
+        auth = SupabaseJWTAuthentication()
+        auth._jwks_cache = override
+
+        with patch(
+            "apps.core.authentication.supabase.httpx.get"
+        ) as mock_get:
+            self.assertEqual(auth._get_jwks(), override)
+
+        mock_get.assert_not_called()
+
+
 class ProfileProvisioningTests(TestCase):
     def setUp(self):
         self.auth = SupabaseJWTAuthentication()

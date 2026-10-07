@@ -547,6 +547,121 @@ class FastPathOfflineTests(TestCase):
         self.assertGreaterEqual(result["total_matches"], 1)
 
 
+class BrandResolutionTests(TestCase):
+    """Regression: real inventory brands resolve on the Fast Path.
+
+    * "tata" is both a goodbye word and the Tata brand: brand usage must win
+      whenever the query names vehicles, while a genuine goodbye ("bye",
+      "tata" alone) must stay conversational.
+    * Multi-word brands ("Maruti Suzuki") must resolve from any distinctive
+      brand word ("Maruti cars"), using inventory brand values only.
+    """
+
+    def setUp(self):
+        self.dealership = factories.create_dealership()
+        factories.create_vehicle(
+            dealership=self.dealership, brand="Tata", model="Nexon", variant="Smart",
+            transmission=TransmissionType.MANUAL, fuel_type=FuelType.PETROL,
+            price=Decimal("825000.00"), seating_capacity=5, manufacturing_year=2024,
+        )
+        factories.create_vehicle(
+            dealership=self.dealership, brand="Tata", model="Punch", variant="Pure",
+            transmission=TransmissionType.MANUAL, fuel_type=FuelType.PETROL,
+            price=Decimal("715000.00"), seating_capacity=5, manufacturing_year=2024,
+        )
+        factories.create_vehicle(
+            dealership=self.dealership, brand="Maruti Suzuki", model="Swift", variant="VXi",
+            transmission=TransmissionType.MANUAL, fuel_type=FuelType.PETROL,
+            price=Decimal("795000.00"), seating_capacity=5, manufacturing_year=2024,
+        )
+        factories.create_vehicle(
+            dealership=self.dealership, brand="Maruti Suzuki", model="Baleno", variant="Delta",
+            transmission=TransmissionType.AMT, fuel_type=FuelType.PETROL,
+            price=Decimal("945000.00"), seating_capacity=5, manufacturing_year=2024,
+        )
+        factories.create_vehicle(
+            dealership=self.dealership, brand="Hyundai", model="Creta", variant="E",
+            transmission=TransmissionType.MANUAL, fuel_type=FuelType.PETROL,
+            price=Decimal("1105000.00"), seating_capacity=5, manufacturing_year=2023,
+        )
+
+    def ask(self, query, **kwargs):
+        gemini = FakeGemini(intent=intent())
+        service = YourSpinnyService(gemini=gemini)
+        return service.ask(query=query, dealership_id=self.dealership.pk, **kwargs), gemini
+
+    def assertBrandSearch(self, query, brand, total):
+        result, gemini = self.ask(query)
+        self.assertEqual(result["processing_path"], "fast_path", query)
+        self.assertEqual(result["intent"], "SEARCH", query)
+        self.assertEqual(result["filters"]["brand"], brand, query)
+        self.assertEqual(result["total_matches"], total, query)
+        self.assertEqual(gemini.calls["extract_intent"], 0, query)
+        models = {v["model"] for v in result["results"]}
+        self.assertTrue(models, query)
+        return result
+
+    def test_tata_brand_queries_are_inventory_searches(self):
+        for query in (
+            "tata cars",
+            "Tata cars",
+            "show me Tata cars",
+            "which Tata cars do you have?",
+            "Tata vehicles",
+            "Tata cars under 15 lakh",
+        ):
+            with self.subTest(query=query):
+                result = self.assertBrandSearch(query, "Tata", 2)
+                self.assertTrue(
+                    all(v["brand"] == "Tata" for v in result["results"]), query
+                )
+
+    def test_maruti_brand_queries_resolve_maruti_suzuki(self):
+        for query in (
+            "Maruti cars",
+            "Maruti Suzuki cars",
+            "show me Maruti cars",
+            "show me Maruti Suzuki cars",
+            "Maruti vehicles",
+        ):
+            with self.subTest(query=query):
+                result = self.assertBrandSearch(query, "Maruti Suzuki", 2)
+                self.assertTrue(
+                    all(v["brand"] == "Maruti Suzuki" for v in result["results"]),
+                    query,
+                )
+
+    def test_maruti_queries_combine_with_other_filters(self):
+        result, gemini = self.ask("Maruti Suzuki under 10 lakh")
+        self.assertEqual(result["processing_path"], "fast_path")
+        self.assertEqual(result["filters"]["brand"], "Maruti Suzuki")
+        self.assertEqual(result["filters"]["price_max"], 1000000)
+        self.assertEqual(result["total_matches"], 2)
+        self.assertEqual(gemini.calls["extract_intent"], 0)
+
+        result, gemini = self.ask("automatic Maruti cars")
+        self.assertEqual(result["processing_path"], "fast_path")
+        self.assertEqual(result["filters"]["brand"], "Maruti Suzuki")
+        self.assertEqual(result["filters"]["transmission_group"], "AUTOMATIC")
+        self.assertEqual(result["total_matches"], 1)
+        self.assertEqual(result["results"][0]["model"], "Baleno")
+        self.assertEqual(gemini.calls["extract_intent"], 0)
+
+    def test_other_brands_keep_working(self):
+        result, gemini = self.ask("Hyundai cars")
+        self.assertEqual(result["processing_path"], "fast_path")
+        self.assertEqual(result["filters"]["brand"], "Hyundai")
+        self.assertEqual(result["total_matches"], 1)
+        self.assertEqual(gemini.calls["extract_intent"], 0)
+
+    def test_genuine_goodbyes_stay_conversational(self):
+        for query in ("bye", "tata"):
+            with self.subTest(query=query):
+                result, gemini = self.ask(query)
+                self.assertEqual(result["query_type"], "OUT_OF_SCOPE", query)
+                self.assertEqual(result["results"], [], query)
+
+
 class MagicMockClient:
     """Minimal stand-in for genai.Client with a text-returning model."""
 

@@ -85,8 +85,13 @@ class SupabaseUser:
 class SupabaseJWTAuthentication(authentication.BaseAuthentication):
     keyword = "Bearer"
 
+    # Process-level JWKS cache shared by every authenticator instance. DRF
+    # builds one authenticator per request, so an instance-level cache would
+    # refetch the signing keys over the network on EVERY authenticated API
+    # call. Tests may still override the cache on a single instance.
+    _jwks_cache: Optional[dict] = None
+
     def __init__(self):
-        self._jwks_cache: Optional[dict] = None
         self._jwks_client: Optional[httpx.AsyncClient] = None
 
     def authenticate(self, request):
@@ -127,8 +132,9 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
         return (user_context, None)
 
     def _get_jwks(self) -> dict:
-        if self._jwks_cache is not None:
-            return self._jwks_cache
+        cached = self.__dict__.get("_jwks_cache", type(self)._jwks_cache)
+        if cached is not None:
+            return cached
 
         jwks_url = getattr(settings, "SUPABASE_JWKS_URL", None)
         if not jwks_url:
@@ -136,8 +142,8 @@ class SupabaseJWTAuthentication(authentication.BaseAuthentication):
 
         response = httpx.get(jwks_url, timeout=10.0)
         response.raise_for_status()
-        self._jwks_cache = response.json()
-        return self._jwks_cache
+        type(self)._jwks_cache = response.json()
+        return type(self)._jwks_cache
 
     def _verify_token(self, token: str) -> dict:
         jwks = self._get_jwks()
