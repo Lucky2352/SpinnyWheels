@@ -7,3 +7,4 @@ python-jose[cryptography]==3.3.0
 httpx==0.27.2
 google-genai==1.0.0
 gunicorn==21.2.0
+whitenoise==6.5.0
