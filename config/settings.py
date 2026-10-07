@@ -28,7 +28,11 @@ if not DATABASE_URL:
     raise ImproperlyConfigured("DATABASE_URL environment variable is required")
 
 DEBUG = env_flag("DEBUG")
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") or ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS") or [
+    "localhost",
+    "127.0.0.1",
+    "spinnywheels.onrender.com",
+]
 TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
