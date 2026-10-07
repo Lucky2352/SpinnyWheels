@@ -1,0 +1,374 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}Technicians{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-technicians-root>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Technicians</h1>
+            <p class="mt-1 text-slate-600">Workshop specialists at your dealership</p>
+        </div>
+        <button type="button" data-modal-toggle="technicianModal" class="hidden inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Add Technician
+        </button>
+    </div>
+
+    <div id="techniciansDenied" class="hidden bg-white rounded-xl border border-slate-200 px-6 py-12 text-center">
+        <svg class="mx-auto h-10 w-10 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+        <h3 class="mt-3 text-lg font-medium text-slate-900">Owner or admin access required</h3>
+        <p class="mt-1 text-slate-500">Only the dealership owner and admins can manage technicians.</p>
+    </div>
+
+    <div id="techniciansPanel" class="hidden bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+        <div data-state="loading" class="hidden py-12 text-center">
+            <div class="inline-flex items-center gap-3 text-slate-600">
+                <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                <span>Loading technicians...</span>
+            </div>
+        </div>
+        <div data-state="error" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load technicians</h3>
+            <p class="mt-1 text-slate-500" data-error-text></p>
+            <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+        </div>
+        <div data-state="empty" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">No technicians yet</h3>
+            <p class="mt-1 text-slate-500">Give a technician-role employee a profile so they can be assigned work.</p>
+            <button type="button" data-modal-toggle="technicianModal" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Add Technician</button>
+        </div>
+        <div data-state="content">
+            <div class="px-5 py-4 border-b border-slate-200">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div class="relative flex-1">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+                        <input type="search" id="technicianSearch" placeholder="Search technician..." class="appearance-none w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <select id="technicianFilter" class="appearance-none px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                        <option value="">All specializations</option>
+                        <option value="ENGINE">Engine</option>
+                        <option value="BRAKES">Brakes</option>
+                        <option value="ELECTRICAL">Electrical</option>
+                        <option value="BODYWORK">Bodywork</option>
+                        <option value="GENERAL">General</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full" role="table">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Technician</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Specialization</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Availability</th>
+                            <th class="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200" data-technician-list></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="technicianModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="technicianModalTitle" role="dialog" aria-modal="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50" data-modal-close></div>
+            <div class="relative w-full max-w-xl bg-white rounded-xl shadow-xl p-6" data-modal>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="technicianModalTitle" class="text-xl font-semibold text-slate-900" data-modal-heading>Add Technician</h2>
+                    <button type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" data-modal-close aria-label="Close modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form id="technicianForm" class="space-y-5" novalidate>
+                    <input type="hidden" id="tTechnicianId" value="">
+                    <div data-create-only>
+                        <label for="tEmployee" class="block text-sm font-medium text-slate-700 mb-1.5">Employee <span class="text-red-500">*</span></label>
+                        <select id="tEmployee" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white"></select>
+                        <p class="mt-1.5 text-xs text-slate-500">Only employees with the technician role appear here.</p>
+                    </div>
+                    <div>
+                        <label for="tSpecialization" class="block text-sm font-medium text-slate-700 mb-1.5">Specialization <span class="text-red-500">*</span></label>
+                        <select id="tSpecialization" name="specialization" required class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                            <option value="GENERAL">General</option>
+                            <option value="ENGINE">Engine</option>
+                            <option value="BRAKES">Brakes</option>
+                            <option value="ELECTRICAL">Electrical</option>
+                            <option value="BODYWORK">Bodywork</option>
+                        </select>
+                    </div>
+                    <div data-edit-only class="hidden">
+                        <label for="tAvailable" class="block text-sm font-medium text-slate-700 mb-1.5">Available for new work</label>
+                        <select id="tAvailable" name="is_available" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                            <option value="true">Available</option>
+                            <option value="false">Not available</option>
+                        </select>
+                        <p class="mt-1.5 text-xs text-slate-500">Technicians are marked unavailable automatically while they hold an active assignment.</p>
+                    </div>
+                    <div class="flex items-center gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-modal-close>Cancel</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Save Technician</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const denied = document.getElementById('techniciansDenied');
+        const panel = document.getElementById('techniciansPanel');
+        const list = document.querySelector('[data-technician-list]');
+        const retryBtn = document.querySelector('[data-retry]');
+        const searchInput = document.getElementById('technicianSearch');
+        const filterSelect = document.getElementById('technicianFilter');
+        const modal = document.getElementById('technicianModal');
+        const modalHeading = document.querySelector('[data-modal-heading]');
+        const form = document.getElementById('technicianForm');
+
+        const technicianIdInput = document.getElementById('tTechnicianId');
+        const employeeSelect = document.getElementById('tEmployee');
+        const createOnly = document.querySelector('[data-create-only]');
+        const editOnly = document.querySelector('[data-edit-only]');
+        const specializationSelect = document.getElementById('tSpecialization');
+        const availableSelect = document.getElementById('tAvailable');
+
+        let technicians = [];
+        let employees = [];
+        let requestInFlight = false;
+        let submitting = false;
+
+        function availabilityBadge(technician) {
+            if (!technician.employee_active) {
+                return { label: 'Employee inactive', classes: 'bg-slate-100 text-slate-600' };
+            }
+            return technician.is_available
+                ? { label: 'Available', classes: 'bg-green-100 text-green-800' }
+                : { label: 'On a job', classes: 'bg-amber-100 text-amber-800' };
+        }
+
+        function buildRow(technician) {
+            const badge = availabilityBadge(technician);
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="px-5 py-4 font-medium text-slate-900" data-name></td>
+                <td class="px-5 py-4 text-sm text-slate-600" data-email></td>
+                <td class="px-5 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700" data-specialization></span>
+                </td>
+                <td class="px-5 py-4 whitespace-nowrap"><span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium" data-availability></span></td>
+                <td class="px-5 py-4 whitespace-nowrap text-right">
+                    <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-edit>Edit</button>
+                </td>`;
+
+            row.querySelector('[data-name]').textContent = technician.employee_name;
+            row.querySelector('[data-email]').textContent = technician.employee_email;
+            row.querySelector('[data-specialization]').textContent = technician.specialization_display;
+            row.querySelector('[data-availability]').textContent = badge.label;
+            row.querySelector('[data-availability]').classList.add(...badge.classes.split(' '));
+
+            row.querySelector('[data-edit]').addEventListener('click', () => openEdit(technician));
+
+            return row;
+        }
+
+        function render() {
+            const term = searchInput.value.trim().toLowerCase();
+            const filter = filterSelect.value;
+
+            const filtered = technicians.filter(technician => {
+                const haystack = `${technician.employee_name} ${technician.employee_email}`.toLowerCase();
+                if (term && !haystack.includes(term)) return false;
+                if (filter && technician.specialization !== filter) return false;
+                return true;
+            });
+
+            list.innerHTML = '';
+
+            if (!technicians.length) {
+                ui.setContainerState(panel, 'empty');
+                return;
+            }
+
+            if (!filtered.length) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 5;
+                cell.className = 'px-5 py-12 text-center text-slate-500';
+                cell.textContent = 'No technicians match your search.';
+                row.appendChild(cell);
+                list.appendChild(row);
+                ui.setContainerState(panel, 'content');
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            filtered.forEach(technician => fragment.appendChild(buildRow(technician)));
+            list.appendChild(fragment);
+            ui.setContainerState(panel, 'content');
+        }
+
+        function populateEmployeeOptions() {
+            const eligible = employees.filter(
+                employee => employee.role === 'TECHNICIAN' && employee.is_active
+            );
+            const taken = new Set(technicians.map(technician => technician.employee_id));
+
+            employeeSelect.innerHTML = '';
+
+            if (!eligible.length) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No eligible employees available';
+                employeeSelect.appendChild(option);
+                employeeSelect.disabled = true;
+                return;
+            }
+
+            employeeSelect.disabled = false;
+            eligible.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.id;
+                option.textContent = taken.has(employee.id)
+                    ? `${employee.full_name} (profile already exists)`
+                    : `${employee.full_name} — ${employee.email}`;
+                option.disabled = taken.has(employee.id);
+                employeeSelect.appendChild(option);
+            });
+        }
+
+        async function loadTechnicians() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(panel, 'loading');
+
+            try {
+                const [techData, employeeData] = await Promise.all([
+                    api.technicians.list(),
+                    api.employees.list(),
+                ]);
+                technicians = Array.isArray(techData) ? techData : [];
+                employees = Array.isArray(employeeData) ? employeeData : [];
+                populateEmployeeOptions();
+                render();
+            } catch (err) {
+                technicians = [];
+                list.innerHTML = '';
+                if (err.status === 401 || err.status === 403) return;
+                ui.setContainerState(panel, 'error', { errorText: ui.errorMessageFor(err) });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        function setCreateDefaults() {
+            modalHeading.textContent = 'Add Technician';
+            technicianIdInput.value = '';
+            form.reset();
+            createOnly.classList.remove('hidden');
+            editOnly.classList.add('hidden');
+            specializationSelect.value = 'GENERAL';
+            populateEmployeeOptions();
+            ui.openModal(modal);
+        }
+
+        function openEdit(technician) {
+            modalHeading.textContent = 'Edit Technician';
+            technicianIdInput.value = technician.id;
+            createOnly.classList.add('hidden');
+            editOnly.classList.remove('hidden');
+            specializationSelect.value = technician.specialization;
+            availableSelect.value = technician.is_available ? 'true' : 'false';
+            ui.openModal(modal);
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (submitting) return;
+
+            const technicianId = technicianIdInput.value;
+            const isEdit = Boolean(technicianId);
+            const specialization = specializationSelect.value;
+
+            let payload;
+            if (isEdit) {
+                payload = {
+                    specialization: specialization,
+                    is_available: availableSelect.value === 'true',
+                };
+            } else {
+                if (!employeeSelect.value) {
+                    ui.showFormError(form, 'Please choose an employee.');
+                    return;
+                }
+                payload = {
+                    employee_id: Number(employeeSelect.value),
+                    specialization: specialization,
+                };
+            }
+
+            submitting = true;
+            ui.setSubmitting(form, true, 'Saving...');
+
+            try {
+                if (isEdit) {
+                    await api.technicians.update(technicianId, payload);
+                    ui.showToast('Technician updated.');
+                } else {
+                    await api.technicians.create(payload);
+                    ui.showToast('Technician profile created.');
+                }
+
+                ui.closeModal(modal);
+                form.reset();
+                ui.clearFormError(form);
+                await loadTechnicians();
+            } catch (err) {
+                if (err.status === 401) return;
+                const fieldErrors = err.errors ? Object.values(err.errors).join(' ') : null;
+                ui.showFormError(form, fieldErrors || ui.errorMessageFor(err));
+            } finally {
+                submitting = false;
+                ui.setSubmitting(form, false);
+            }
+        });
+
+        document.querySelectorAll('[data-modal-toggle="technicianModal"]').forEach(button => {
+            button.addEventListener('click', setCreateDefaults);
+        });
+
+        searchInput.addEventListener('input', render);
+        filterSelect.addEventListener('change', render);
+        retryBtn.addEventListener('click', loadTechnicians);
+
+        async function start() {
+            const user = await ui.loadCurrentUser();
+
+            if (!user || !user.can_manage_inventory) {
+                denied.classList.remove('hidden');
+                ui.applyRoleVisibility(user);
+                return;
+            }
+
+            ui.applyRoleVisibility(user);
+            panel.classList.remove('hidden');
+            loadTechnicians();
+        }
+
+        start();
+    })();
+</script>
+{% endblock %}

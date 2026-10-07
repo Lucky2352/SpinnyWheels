@@ -1,0 +1,485 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}Inventory{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-inventory-root>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Vehicle Inventory</h1>
+            <p class="mt-1 text-slate-600">Showroom stock for your dealership</p>
+        </div>
+        <button type="button" data-modal-toggle="vehicleModal" data-owner-only class="hidden inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Add Vehicle
+        </button>
+    </div>
+
+    <div id="inventoryDenied" class="hidden bg-white rounded-xl border border-slate-200 px-6 py-12 text-center">
+        <svg class="mx-auto h-10 w-10 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+        <h3 class="mt-3 text-lg font-medium text-slate-900">Owner or admin access required</h3>
+        <p class="mt-1 text-slate-500">Only the dealership owner and admins can manage showroom inventory.</p>
+    </div>
+
+    <div id="inventoryPanel" class="hidden bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+        <div data-state="loading" class="hidden py-12 text-center">
+            <div class="inline-flex items-center gap-3 text-slate-600">
+                <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                <span>Loading inventory...</span>
+            </div>
+        </div>
+        <div data-state="error" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load inventory</h3>
+            <p class="mt-1 text-slate-500" data-error-text></p>
+            <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+        </div>
+        <div data-state="empty" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">No inventory yet</h3>
+            <p class="mt-1 text-slate-500">Add your first showroom vehicle to get started.</p>
+            <button type="button" data-modal-toggle="vehicleModal" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Add Vehicle</button>
+        </div>
+        <div data-state="content">
+            <div class="px-5 py-4 border-b border-slate-200">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div class="relative flex-1">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+                        <input type="search" id="inventorySearch" placeholder="Search brand, model or variant..." class="appearance-none w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <select id="inventoryFilter" class="appearance-none px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                        <option value="">All vehicles</option>
+                        <option value="available">Available</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full" role="table">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Vehicle</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Specs</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Stock</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                            <th class="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200" data-inventory-list></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="vehicleModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="vehicleModalTitle" role="dialog" aria-modal="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50" data-modal-close></div>
+            <div class="relative w-full max-w-2xl bg-white rounded-xl shadow-xl p-6" data-modal>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="vehicleModalTitle" class="text-xl font-semibold text-slate-900" data-modal-heading>Add Vehicle</h2>
+                    <button type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" data-modal-close aria-label="Close modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form id="vehicleForm" class="space-y-5" novalidate>
+                    <input type="hidden" id="vVehicleId" value="">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="vBrand" class="block text-sm font-medium text-slate-700 mb-1.5">Brand <span class="text-red-500">*</span></label>
+                            <input type="text" id="vBrand" name="brand" required maxlength="100" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Maruti Suzuki">
+                        </div>
+                        <div>
+                            <label for="vModel" class="block text-sm font-medium text-slate-700 mb-1.5">Model <span class="text-red-500">*</span></label>
+                            <input type="text" id="vModel" name="model" required maxlength="100" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Grand Vitara">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="vVariant" class="block text-sm font-medium text-slate-700 mb-1.5">Variant</label>
+                            <input type="text" id="vVariant" name="variant" maxlength="100" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Zeta">
+                        </div>
+                        <div>
+                            <label for="vYear" class="block text-sm font-medium text-slate-700 mb-1.5">Model Year <span class="text-red-500">*</span></label>
+                            <input type="number" id="vYear" name="manufacturing_year" required min="1900" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="2024">
+                        </div>
+                        <div>
+                            <label for="vSeats" class="block text-sm font-medium text-slate-700 mb-1.5">Seating Capacity</label>
+                            <input type="number" id="vSeats" name="seating_capacity" min="1" max="15" step="1" value="5" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="vFuel" class="block text-sm font-medium text-slate-700 mb-1.5">Fuel Type <span class="text-red-500">*</span></label>
+                            <select id="vFuel" name="fuel_type" required class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                                <option value="PETROL">Petrol</option>
+                                <option value="DIESEL">Diesel</option>
+                                <option value="CNG">CNG</option>
+                                <option value="ELECTRIC">Electric</option>
+                                <option value="HYBRID">Hybrid</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="vTransmission" class="block text-sm font-medium text-slate-700 mb-1.5">Transmission <span class="text-red-500">*</span></label>
+                            <select id="vTransmission" name="transmission" required class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                                <option value="MANUAL">Manual</option>
+                                <option value="AUTOMATIC">Automatic</option>
+                                <option value="AMT">AMT</option>
+                                <option value="CVT">CVT</option>
+                                <option value="DCT">DCT</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="vPrice" class="block text-sm font-medium text-slate-700 mb-1.5">Price (INR) <span class="text-red-500">*</span></label>
+                            <input type="number" id="vPrice" name="price" required min="0" step="1" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="1500000">
+                        </div>
+                        <div>
+                            <label for="vStock" class="block text-sm font-medium text-slate-700 mb-1.5">Stock Quantity <span class="text-red-500">*</span></label>
+                            <input type="number" id="vStock" name="stock_quantity" required min="0" step="1" value="1" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="vDescription" class="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+                        <textarea id="vDescription" name="description" rows="3" maxlength="4000" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Short showroom description"></textarea>
+                    </div>
+                    <div class="flex items-center gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-modal-close>Cancel</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Save Vehicle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const denied = document.getElementById('inventoryDenied');
+        const panel = document.getElementById('inventoryPanel');
+        const list = document.querySelector('[data-inventory-list]');
+        const retryBtn = document.querySelector('[data-retry]');
+        const searchInput = document.getElementById('inventorySearch');
+        const filterSelect = document.getElementById('inventoryFilter');
+        const modal = document.getElementById('vehicleModal');
+        const modalHeading = document.querySelector('[data-modal-heading]');
+        const form = document.getElementById('vehicleForm');
+
+        const vehicleIdInput = document.getElementById('vVehicleId');
+        const brandInput = document.getElementById('vBrand');
+        const modelInput = document.getElementById('vModel');
+        const variantInput = document.getElementById('vVariant');
+        const yearInput = document.getElementById('vYear');
+        const seatsInput = document.getElementById('vSeats');
+        const fuelSelect = document.getElementById('vFuel');
+        const transmissionSelect = document.getElementById('vTransmission');
+        const priceInput = document.getElementById('vPrice');
+        const stockInput = document.getElementById('vStock');
+        const descriptionInput = document.getElementById('vDescription');
+
+        let dealershipId = null;
+        let vehicles = [];
+        let requestInFlight = false;
+        let submitting = false;
+
+        function specSummary(vehicle) {
+            return [
+                vehicle.manufacturing_year,
+                vehicle.fuel_type,
+                vehicle.transmission,
+                `${vehicle.seating_capacity} seater`
+            ].filter(Boolean).join(' · ');
+        }
+
+        function statusBadge(vehicle) {
+            if (vehicle.is_in_stock) {
+                return { label: 'Available', classes: 'bg-green-100 text-green-800' };
+            }
+            if (vehicle.stock_quantity === 0) {
+                return { label: 'Out of stock', classes: 'bg-slate-100 text-slate-600' };
+            }
+            return { label: 'Unavailable', classes: 'bg-amber-100 text-amber-800' };
+        }
+
+        function buildRow(vehicle) {
+            const badge = statusBadge(vehicle);
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="px-5 py-4">
+                    <p class="font-medium text-slate-900" data-name></p>
+                    <p class="text-xs text-slate-500" data-dealership></p>
+                </td>
+                <td class="px-5 py-4 text-sm text-slate-600" data-specs></td>
+                <td class="px-5 py-4 text-sm font-medium text-slate-900 whitespace-nowrap" data-price></td>
+                <td class="px-5 py-4 text-sm text-slate-600 whitespace-nowrap" data-stock></td>
+                <td class="px-5 py-4 whitespace-nowrap"><span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium" data-status></span></td>
+                <td class="px-5 py-4 whitespace-nowrap text-right">
+                    <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-edit>Edit</button>
+                    <button type="button" class="ml-2 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" data-deactivate>Deactivate</button>
+                </td>`;
+
+            row.querySelector('[data-name]').textContent =
+                [vehicle.brand, vehicle.model, vehicle.variant].filter(Boolean).join(' ');
+            row.querySelector('[data-dealership]').textContent = vehicle.dealership_name || '';
+            row.querySelector('[data-specs]').textContent = specSummary(vehicle);
+            row.querySelector('[data-price]').textContent = ui.formatMoney(vehicle.price);
+            row.querySelector('[data-stock]').textContent = `${vehicle.stock_quantity}`;
+            row.querySelector('[data-status]').textContent = badge.label;
+            row.querySelector('[data-status]').classList.add(...badge.classes.split(' '));
+
+            const deactivateBtn = row.querySelector('[data-deactivate]');
+            deactivateBtn.disabled = !vehicle.is_available && vehicle.stock_quantity === 0;
+
+            row.querySelector('[data-edit]').addEventListener('click', () => openEdit(vehicle));
+            deactivateBtn.addEventListener('click', () => deactivate(vehicle, deactivateBtn));
+
+            return row;
+        }
+
+        function render() {
+            const term = searchInput.value.trim().toLowerCase();
+            const filter = filterSelect.value;
+
+            const filtered = vehicles.filter(vehicle => {
+                const haystack = [vehicle.brand, vehicle.model, vehicle.variant]
+                    .filter(Boolean).join(' ').toLowerCase();
+                if (term && !haystack.includes(term)) return false;
+                if (filter === 'available' && !vehicle.is_in_stock) return false;
+                if (filter === 'unavailable' && vehicle.is_in_stock) return false;
+                return true;
+            });
+
+            list.innerHTML = '';
+
+            if (!vehicles.length) {
+                ui.setContainerState(panel, 'empty');
+                return;
+            }
+
+            if (!filtered.length) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 6;
+                cell.className = 'px-5 py-12 text-center text-slate-500';
+                cell.textContent = 'No vehicles match your search.';
+                row.appendChild(cell);
+                list.appendChild(row);
+                ui.setContainerState(panel, 'content');
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            filtered.forEach(vehicle => fragment.appendChild(buildRow(vehicle)));
+            list.appendChild(fragment);
+            ui.setContainerState(panel, 'content');
+        }
+
+        async function loadInventory() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(panel, 'loading');
+
+            try {
+                const data = await api.vehicles.inventory();
+                vehicles = Array.isArray(data) ? data : [];
+                render();
+            } catch (err) {
+                vehicles = [];
+                list.innerHTML = '';
+                if (err.status === 401 || err.status === 403) return;
+                ui.setContainerState(panel, 'error', { errorText: ui.errorMessageFor(err) });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        function setCreateDefaults() {
+            modalHeading.textContent = 'Add Vehicle';
+            vehicleIdInput.value = '';
+            form.reset();
+            seatsInput.value = '5';
+            stockInput.value = '1';
+            yearInput.value = String(new Date().getFullYear());
+            brandInput.required = true;
+            modelInput.required = true;
+            fuelSelect.required = true;
+            transmissionSelect.required = true;
+        }
+
+        function openEdit(vehicle) {
+            modalHeading.textContent = 'Edit Vehicle';
+            vehicleIdInput.value = vehicle.id;
+            brandInput.value = vehicle.brand;
+            modelInput.value = vehicle.model;
+            variantInput.value = vehicle.variant || '';
+            yearInput.value = vehicle.manufacturing_year;
+            seatsInput.value = vehicle.seating_capacity;
+            fuelSelect.value = vehicle.fuel_type;
+            transmissionSelect.value = vehicle.transmission;
+            priceInput.value = vehicle.price;
+            stockInput.value = vehicle.stock_quantity;
+            descriptionInput.value = vehicle.description || '';
+            brandInput.required = false;
+            modelInput.required = false;
+            fuelSelect.required = false;
+            transmissionSelect.required = false;
+            ui.openModal(modal);
+        }
+
+        async function deactivate(vehicle, button) {
+            if (submitting) return;
+            if (!window.confirm(`Deactivate ${vehicle.brand} ${vehicle.model}? It will be hidden from customers.`)) {
+                return;
+            }
+
+            submitting = true;
+            button.disabled = true;
+
+            try {
+                await api.vehicles.deactivate(vehicle.id);
+                ui.showToast('Vehicle deactivated.');
+                await loadInventory();
+            } catch (err) {
+                if (err.status === 401) return;
+                button.disabled = false;
+                ui.showToast(ui.errorMessageFor(err), 'error');
+            } finally {
+                submitting = false;
+            }
+        }
+
+        function validateForm(isEdit) {
+            const price = Number(priceInput.value);
+            const stock = Number(stockInput.value);
+
+            if (!isEdit) {
+                if (!brandInput.value.trim()) {
+                    ui.showFormError(form, 'Please enter the brand.');
+                    return false;
+                }
+                if (!modelInput.value.trim()) {
+                    ui.showFormError(form, 'Please enter the model.');
+                    return false;
+                }
+            }
+
+            const year = Number(yearInput.value);
+            if (!year || year < 1900 || year > new Date().getFullYear() + 1) {
+                ui.showFormError(form, 'Please enter a valid model year.');
+                return false;
+            }
+
+            if (!priceInput.value || !Number.isFinite(price) || price < 0) {
+                ui.showFormError(form, 'Price must be zero or greater.');
+                return false;
+            }
+
+            if (stockInput.value === '' || !Number.isFinite(stock) || stock < 0) {
+                ui.showFormError(form, 'Stock quantity must be zero or greater.');
+                return false;
+            }
+
+            ui.clearFormError(form);
+            return true;
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (submitting) return;
+
+            const vehicleId = vehicleIdInput.value;
+            const isEdit = Boolean(vehicleId);
+
+            if (!validateForm(isEdit)) return;
+
+            const price = Number(priceInput.value);
+            const stock = Number(stockInput.value);
+            const description = descriptionInput.value.trim();
+
+            const payload = isEdit
+                ? {
+                    variant: variantInput.value.trim(),
+                    manufacturing_year: Number(yearInput.value),
+                    seating_capacity: Number(seatsInput.value) || 5,
+                    fuel_type: fuelSelect.value,
+                    transmission: transmissionSelect.value,
+                    price: price,
+                    stock_quantity: stock,
+                    description: description,
+                }
+                : {
+                    dealership_id: dealershipId,
+                    brand: brandInput.value.trim(),
+                    model: modelInput.value.trim(),
+                    variant: variantInput.value.trim(),
+                    manufacturing_year: Number(yearInput.value),
+                    seating_capacity: Number(seatsInput.value) || 5,
+                    fuel_type: fuelSelect.value,
+                    transmission: transmissionSelect.value,
+                    price: price,
+                    stock_quantity: stock,
+                    description: description,
+                };
+
+            submitting = true;
+            ui.setSubmitting(form, true, 'Saving...');
+
+            try {
+                if (isEdit) {
+                    await api.vehicles.update(vehicleId, payload);
+                    ui.showToast('Vehicle updated.');
+                } else {
+                    await api.vehicles.create(payload);
+                    ui.showToast('Vehicle added to inventory.');
+                }
+
+                ui.closeModal(modal);
+                form.reset();
+                ui.clearFormError(form);
+                await loadInventory();
+            } catch (err) {
+                if (err.status === 401) return;
+                const fieldErrors = err.errors ? Object.values(err.errors).join(' ') : null;
+                ui.showFormError(form, fieldErrors || ui.errorMessageFor(err));
+            } finally {
+                submitting = false;
+                ui.setSubmitting(form, false);
+            }
+        });
+
+        document.querySelectorAll('[data-modal-toggle="vehicleModal"]').forEach(button => {
+            button.addEventListener('click', setCreateDefaults);
+        });
+
+        searchInput.addEventListener('input', render);
+        filterSelect.addEventListener('change', render);
+        retryBtn.addEventListener('click', loadInventory);
+
+        async function start() {
+            const user = await ui.loadCurrentUser();
+
+            if (!user || !user.can_manage_inventory) {
+                denied.classList.remove('hidden');
+                ui.applyRoleVisibility(user);
+                return;
+            }
+
+            dealershipId = user.dealership_id;
+            ui.applyRoleVisibility(user);
+            panel.classList.remove('hidden');
+            loadInventory();
+        }
+
+        start();
+    })();
+</script>
+{% endblock %}

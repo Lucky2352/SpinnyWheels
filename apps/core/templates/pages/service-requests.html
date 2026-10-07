@@ -1,0 +1,419 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}Service Requests{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-service-requests-root>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Service Requests</h1>
+            <p class="mt-1 text-slate-600">Manage and track your vehicle service requests</p>
+        </div>
+        <button type="button" data-modal-toggle="createServiceRequestModal" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Create Request
+        </button>
+    </div>
+
+    <section aria-labelledby="active-requests-heading">
+        <div class="flex items-center justify-between mb-4">
+            <h2 id="active-requests-heading" class="text-lg font-semibold text-slate-900">Active Requests</h2>
+            <span data-active-count class="text-sm text-slate-500"></span>
+        </div>
+        <div id="activePanel" class="bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+            <div data-state="loading" class="hidden py-12 text-center">
+                <div class="inline-flex items-center gap-3 text-slate-600">
+                    <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span>Loading service requests...</span>
+                </div>
+            </div>
+            <div data-state="error" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load service requests</h3>
+                <p class="mt-1 text-slate-500" data-error-text></p>
+                <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+            </div>
+            <div data-state="empty" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <h3 class="mt-3 text-lg font-medium text-slate-900">No active service requests</h3>
+                <p class="mt-1 text-slate-500">You don't have any active service requests at the moment.</p>
+            </div>
+            <div data-state="content">
+                <div class="overflow-x-auto">
+                    <table class="w-full" role="table">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Vehicle</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Request Type</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Description</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Priority</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Created</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200" data-active-list></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section aria-labelledby="completed-requests-heading" class="mt-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 id="completed-requests-heading" class="text-lg font-semibold text-slate-900">Completed Requests</h2>
+            <span data-completed-count class="text-sm text-slate-500"></span>
+        </div>
+        <div id="completedPanel" class="bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+            <div data-state="loading" class="hidden py-12 text-center">
+                <div class="inline-flex items-center gap-3 text-slate-600">
+                    <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span>Loading completed requests...</span>
+                </div>
+            </div>
+            <div data-state="error" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load completed requests</h3>
+                <p class="mt-1 text-slate-500" data-error-text></p>
+            </div>
+            <div data-state="empty" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <h3 class="mt-3 text-lg font-medium text-slate-900">No completed requests</h3>
+                <p class="mt-1 text-slate-500">Your completed service requests will appear here.</p>
+            </div>
+            <div data-state="content">
+                <div class="overflow-x-auto">
+                    <table class="w-full" role="table">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Created</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Vehicle</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Request Type</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Priority</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Estimated Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200" data-completed-list></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="createServiceRequestModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modalTitle" role="dialog" aria-modal="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50" data-modal-close></div>
+            <div class="relative w-full max-w-lg bg-white rounded-xl shadow-xl p-6" data-modal>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="modalTitle" class="text-xl font-semibold text-slate-900">Create Service Request</h2>
+                    <button type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" data-modal-close aria-label="Close modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form id="serviceRequestForm" class="space-y-5" novalidate>
+                    <div>
+                        <label for="srVehicle" class="block text-sm font-medium text-slate-700 mb-1.5">Vehicle <span class="text-red-500">*</span></label>
+                        <select id="srVehicle" name="vehicle" required class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                            <option value="">Loading your vehicles...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="srType" class="block text-sm font-medium text-slate-700 mb-1.5">Request Type <span class="text-red-500">*</span></label>
+                        <select id="srType" name="type" required class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                            <option value="">Select request type</option>
+                            <option value="GENERAL_SERVICE">General Service</option>
+                            <option value="REPAIR">Repair</option>
+                            <option value="INSPECTION">Inspection</option>
+                            <option value="MAINTENANCE">Maintenance</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="srDescription" class="block text-sm font-medium text-slate-700 mb-1.5">Description <span class="text-red-500">*</span></label>
+                        <textarea id="srDescription" name="description" rows="3" required maxlength="4000" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Describe the issue or service needed..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="srPriority" class="block text-sm font-medium text-slate-700 mb-1.5">Priority</label>
+                            <select id="srPriority" name="priority" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM" selected>Medium</option>
+                                <option value="HIGH">High</option>
+                                <option value="URGENT">Urgent</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="srEstimatedCost" class="block text-sm font-medium text-slate-700 mb-1.5">Estimated Cost (optional)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">$</span>
+                                <input type="number" id="srEstimatedCost" name="estimated_cost" min="0" step="0.01" class="appearance-none relative block w-full pl-7 pr-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-modal-close>Cancel</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const activePanel = document.getElementById('activePanel');
+        const completedPanel = document.getElementById('completedPanel');
+        const activeList = document.querySelector('[data-active-list]');
+        const completedList = document.querySelector('[data-completed-list]');
+        const activeCount = document.querySelector('[data-active-count]');
+        const completedCount = document.querySelector('[data-completed-count]');
+        const retryBtn = document.querySelector('[data-retry]');
+        const vehicleSelect = document.getElementById('srVehicle');
+        const form = document.getElementById('serviceRequestForm');
+        const modal = document.getElementById('createServiceRequestModal');
+
+        const COMPLETED_STATUSES = ['COMPLETED', 'CANCELLED'];
+
+        let requests = [];
+        let myVehicles = [];
+        let requestInFlight = false;
+        let submitting = false;
+
+        function vehicleLabel(detail) {
+            if (!detail) return 'Unknown vehicle';
+            const vehicle = detail.vehicle || {};
+            const name = [vehicle.manufacturing_year, vehicle.brand, vehicle.model]
+                .filter(Boolean)
+                .join(' ');
+            return `${name} (${detail.registration_number})`;
+        }
+
+        function buildActiveRow(item) {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="px-5 py-4">
+                    <div class="font-medium text-slate-900" data-vehicle></div>
+                    <div class="text-sm text-slate-500" data-registration></div>
+                </td>
+                <td class="px-5 py-4">
+                    <span data-type class="px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-800"></span>
+                </td>
+                <td class="px-5 py-4 text-sm text-slate-600 max-w-xs truncate" data-description></td>
+                <td class="px-5 py-4">
+                    <span data-priority class="px-2 py-1 text-xs font-medium rounded-full"></span>
+                </td>
+                <td class="px-5 py-4">
+                    <span data-status class="px-2.5 py-1 text-xs font-medium rounded-full"></span>
+                </td>
+                <td class="px-5 py-4 text-sm text-slate-600 whitespace-nowrap" data-created></td>`;
+
+            const detail = item.customer_vehicle_detail;
+            row.querySelector('[data-vehicle]').textContent = detail && detail.vehicle
+                ? [detail.vehicle.manufacturing_year, detail.vehicle.brand, detail.vehicle.model]
+                    .filter(Boolean)
+                    .join(' ')
+                : 'Unknown vehicle';
+            row.querySelector('[data-registration]').textContent = detail
+                ? detail.registration_number
+                : `Vehicle #${item.customer_vehicle}`;
+            row.querySelector('[data-description]').textContent = item.problem_description;
+            row.querySelector('[data-description]').title = item.problem_description;
+            row.querySelector('[data-created]').textContent = ui.formatDate(item.created_at);
+
+            const typeBadge = row.querySelector('[data-type]');
+            typeBadge.textContent = item.service_type_display || item.service_type;
+
+            const priorityBadge = row.querySelector('[data-priority]');
+            priorityBadge.textContent = item.priority_display || item.priority;
+            priorityBadge.classList.add(...ui.priorityBadge(item.priority).split(' '));
+
+            const statusBadge = row.querySelector('[data-status]');
+            statusBadge.textContent = item.status_display || item.status;
+            statusBadge.classList.add(...ui.serviceStatusBadge(item.status).split(' '));
+
+            return row;
+        }
+
+        function buildCompletedRow(item) {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="px-5 py-4 text-sm text-slate-900 whitespace-nowrap" data-created></td>
+                <td class="px-5 py-4 text-sm text-slate-900" data-vehicle></td>
+                <td class="px-5 py-4 text-sm text-slate-600" data-type></td>
+                <td class="px-5 py-4">
+                    <span data-priority class="px-2 py-1 text-xs font-medium rounded-full"></span>
+                </td>
+                <td class="px-5 py-4 text-sm font-medium text-slate-900" data-cost></td>`;
+
+            row.querySelector('[data-created]').textContent = ui.formatDate(item.created_at);
+            row.querySelector('[data-vehicle]').textContent = vehicleLabel(item.customer_vehicle_detail);
+            row.querySelector('[data-type]').textContent = item.service_type_display || item.service_type;
+            row.querySelector('[data-cost]').textContent = item.estimated_cost
+                ? ui.formatMoney(item.estimated_cost)
+                : '-';
+
+            const priorityBadge = row.querySelector('[data-priority]');
+            priorityBadge.textContent = item.priority_display || item.priority;
+            priorityBadge.classList.add(...ui.priorityBadge(item.priority).split(' '));
+
+            return row;
+        }
+
+        function render() {
+            const active = requests.filter(item => !COMPLETED_STATUSES.includes(item.status));
+            const completed = requests.filter(item => COMPLETED_STATUSES.includes(item.status));
+
+            activeList.innerHTML = '';
+            completedList.innerHTML = '';
+
+            activeCount.textContent = active.length ? `${active.length} in progress` : '';
+            completedCount.textContent = completed.length ? `${completed.length} completed` : '';
+
+            if (active.length) {
+                const fragment = document.createDocumentFragment();
+                active.forEach(item => fragment.appendChild(buildActiveRow(item)));
+                activeList.appendChild(fragment);
+                ui.setContainerState(activePanel, 'content');
+            } else {
+                ui.setContainerState(activePanel, 'empty');
+            }
+
+            if (completed.length) {
+                const fragment = document.createDocumentFragment();
+                completed.forEach(item => fragment.appendChild(buildCompletedRow(item)));
+                completedList.appendChild(fragment);
+                ui.setContainerState(completedPanel, 'content');
+            } else {
+                ui.setContainerState(completedPanel, 'empty');
+            }
+        }
+
+        async function loadRequests() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(activePanel, 'loading');
+            ui.setContainerState(completedPanel, 'loading');
+            activeCount.textContent = '';
+            completedCount.textContent = '';
+
+            try {
+                const data = await api.serviceRequests.list();
+                requests = Array.isArray(data) ? data : [];
+                render();
+            } catch (err) {
+                requests = [];
+                activeList.innerHTML = '';
+                completedList.innerHTML = '';
+                if (err.status === 401) return;
+                const message = ui.errorMessageFor(err);
+                ui.setContainerState(activePanel, 'error', { errorText: message });
+                ui.setContainerState(completedPanel, 'error', { errorText: message });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        async function loadMyVehicles() {
+            try {
+                const vehicles = await api.customerVehicles.list();
+                myVehicles = Array.isArray(vehicles) ? vehicles : [];
+
+                vehicleSelect.innerHTML = '<option value="">Select a vehicle</option>';
+                myVehicles.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = vehicleLabel(item);
+                    vehicleSelect.appendChild(option);
+                });
+
+                if (!myVehicles.length) {
+                    vehicleSelect.innerHTML = '<option value="">No vehicles on your account</option>';
+                    vehicleSelect.disabled = true;
+                } else {
+                    vehicleSelect.disabled = false;
+                }
+            } catch (err) {
+                if (err.status === 401) return;
+                vehicleSelect.innerHTML = '<option value="">Could not load your vehicles</option>';
+                vehicleSelect.disabled = true;
+            }
+        }
+
+        function validateForm() {
+            if (!vehicleSelect.value) {
+                ui.showFormError(form, 'Please select one of your vehicles.');
+                return false;
+            }
+            if (!document.getElementById('srType').value) {
+                ui.showFormError(form, 'Please select a request type.');
+                return false;
+            }
+            const description = document.getElementById('srDescription').value.trim();
+            if (!description) {
+                ui.showFormError(form, 'Please describe the issue or service needed.');
+                return false;
+            }
+
+            const costInput = document.getElementById('srEstimatedCost');
+            if (costInput.value !== '' && Number(costInput.value) < 0) {
+                ui.showFormError(form, 'Estimated cost cannot be negative.');
+                return false;
+            }
+
+            ui.clearFormError(form);
+            return true;
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (submitting) return;
+            if (!validateForm()) return;
+
+            const costInput = document.getElementById('srEstimatedCost');
+            const payload = {
+                customer_vehicle_id: Number(vehicleSelect.value),
+                service_type: document.getElementById('srType').value,
+                problem_description: document.getElementById('srDescription').value.trim(),
+                priority: document.getElementById('srPriority').value,
+            };
+            if (costInput.value !== '') {
+                payload.estimated_cost = Number(costInput.value).toFixed(2);
+            }
+
+            submitting = true;
+            ui.setSubmitting(form, true, 'Submitting...');
+
+            try {
+                await api.serviceRequests.create(payload);
+
+                ui.closeModal(modal);
+                form.reset();
+                vehicleSelect.value = '';
+                ui.clearFormError(form);
+                ui.showToast('Service request submitted successfully.');
+                await loadRequests();
+            } catch (err) {
+                if (err.status === 401) return;
+                const fieldErrors = err.errors ? Object.values(err.errors).join(' ') : null;
+                ui.showFormError(form, fieldErrors || ui.errorMessageFor(err));
+            } finally {
+                submitting = false;
+                ui.setSubmitting(form, false);
+            }
+        });
+
+        retryBtn.addEventListener('click', loadRequests);
+
+        loadMyVehicles();
+        loadRequests();
+    })();
+</script>
+{% endblock %}

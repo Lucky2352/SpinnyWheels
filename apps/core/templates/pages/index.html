@@ -1,0 +1,205 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<header class="relative bg-white border-b border-slate-200">
+    <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Global">
+        <div class="flex h-16 items-center justify-between">
+            <div class="flex items-center">
+                <span class="text-xl font-bold text-slate-900">spinnyWheels</span>
+            </div>
+            <div class="hidden md:flex md:items-center md:gap-8">
+                <a href="#features" class="text-sm font-medium text-slate-700 hover:text-slate-900">Features</a>
+                <a href="#vehicles" class="text-sm font-medium text-slate-700 hover:text-slate-900">Vehicles</a>
+                <a href="#services" class="text-sm font-medium text-slate-700 hover:text-slate-900">Services</a>
+                <a href="{% url 'login' %}" class="text-sm font-medium text-slate-700 hover:text-slate-900">Sign In</a>
+                <a href="{% url 'register' %}" class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors">Get Started</a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<main>
+    <section class="relative overflow-hidden bg-white py-20 sm:py-32" aria-labelledby="hero-heading">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 id="hero-heading" class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900">
+                    Automotive Sales & Service Platform
+                </h1>
+                <p class="mt-6 text-lg sm:text-xl text-slate-600 max-w-3xl mx-auto">
+                    Streamline dealership operations with a unified platform for vehicle inventory, test drives, service scheduling, and customer management.
+                </p>
+                <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="{% url 'vehicles' %}" class="rounded-lg bg-primary-600 px-8 py-3 text-base font-semibold text-white hover:bg-primary-700 transition-colors">
+                        Explore Vehicles
+                    </a>
+                    <a href="{% url 'register' %}" class="rounded-lg border border-slate-300 bg-white px-8 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                        Book a Service
+                    </a>
+                </div>
+            </div>
+
+            <div class="mt-20 relative">
+                <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent z-10 pointer-events-none"></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {% for vehicle in vehicles %}
+                    <article class="group rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                        <div class="aspect-video bg-slate-100 flex items-center justify-center">
+                            <svg class="w-16 h-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-semibold text-slate-900">{{ vehicle.brand }} {{ vehicle.model }}</h3>
+                                    <p class="text-sm text-slate-500">{{ vehicle.year }}</p>
+                                </div>
+                                <span class="text-lg font-bold text-slate-900">₹{{ vehicle.price|floatformat:0 }}</span>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <span class="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600">{{ vehicle.fuel }}</span>
+                                <span class="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600">{{ vehicle.transmission }}</span>
+                            </div>
+                            <div class="mt-4 flex items-center justify-between">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full {% if vehicle.available %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ vehicle.available|yesno:"Available,Unavailable" }}
+                                </span>
+                                <a href="#" class="text-sm font-medium text-primary-600 hover:text-primary-700">View Details</a>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="py-20 bg-slate-50" aria-labelledby="features-heading">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 id="features-heading" class="text-3xl sm:text-4xl font-bold text-slate-900">Built for Modern Dealerships</h2>
+                <p class="mt-4 text-lg text-slate-600">End-to-end platform covering the complete automotive lifecycle from showroom to service bay.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <article class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-900 mb-2">Vehicle Inventory</h3>
+                    <p class="text-slate-600">Manage dealership stock with real-time availability, pricing, and specifications across all locations.</p>
+                </article>
+                <article class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-900 mb-2">Test Drive Booking</h3>
+                    <p class="text-slate-600">Seamless scheduling with vehicle availability checks and automated confirmations.</p>
+                </article>
+                <article class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-900 mb-2">Service Management</h3>
+                    <p class="text-slate-600">Complete service workflow from request to completion with technician assignments and progress tracking.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section id="vehicles" class="py-20 bg-white" aria-labelledby="vehicles-heading">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 id="vehicles-heading" class="text-3xl sm:text-4xl font-bold text-slate-900">Browse Our Inventory</h2>
+                <p class="mt-4 text-lg text-slate-600">Discover vehicles available at dealerships near you with real-time stock information.</p>
+            </div>
+            <div class="flex justify-center">
+                <a href="{% url 'vehicles' %}" class="rounded-lg bg-primary-600 px-8 py-3 text-base font-semibold text-white hover:bg-primary-700 transition-colors">
+                    View All Vehicles
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="services" class="py-20 bg-slate-50" aria-labelledby="services-heading">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 id="services-heading" class="text-3xl sm:text-4xl font-bold text-slate-900">Professional Service & Repair</h2>
+                <p class="mt-4 text-lg text-slate-600">Schedule maintenance, request repairs, and track service progress with certified technicians.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-3">Maintenance Services</h3>
+                    <ul class="space-y-2 text-slate-600">
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Oil changes & fluid checks</li>
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Brake inspection & replacement</li>
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Tire rotation & alignment</li>
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Battery testing & replacement</li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-3">Repair Services</h3>
+                    <ul class="space-y-2 text-slate-600">
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Engine diagnostics & repair</li>
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Transmission service</li>
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Electrical system repair</li>
+                        <li class="flex items-center gap-2"><svg class="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Bodywork & paint</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-12 text-center">
+                <a href="#" class="rounded-lg border border-slate-300 bg-white px-8 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                    Schedule Service
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 bg-primary-600" aria-labelledby="cta-heading">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+            <h2 id="cta-heading" class="text-3xl sm:text-4xl font-bold text-white">Ready to Get Started?</h2>
+            <p class="mt-4 text-lg text-primary-100 max-w-2xl mx-auto">Join dealerships already using spinnyWheels to streamline their operations.</p>
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="{% url 'register' %}" class="rounded-lg bg-white px-8 py-3 text-base font-semibold text-primary-600 hover:bg-primary-50 transition-colors">
+                    Create Free Account
+                </a>
+                <a href="#contact" class="rounded-lg border-2 border-white px-8 py-3 text-base font-semibold text-white hover:bg-primary-700 transition-colors">
+                    Contact Sales
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="bg-slate-900 text-white py-16" role="contentinfo">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="md:col-span-2">
+                <span class="text-xl font-bold">spinnyWheels</span>
+                <p class="mt-4 text-slate-400 max-w-xs">Automotive dealership and service management platform built for modern operations.</p>
+            </div>
+            <div>
+                <h4 class="font-semibold mb-4">Product</h4>
+                <ul class="space-y-2 text-slate-400">
+                    <li><a href="#" class="hover:text-white transition-colors">Vehicle Inventory</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Test Drive Booking</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Service Management</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Appointment Scheduling</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold mb-4">Company</h4>
+                <ul class="space-y-2 text-slate-400">
+                    <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="mt-12 border-t border-slate-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p class="text-slate-400 text-sm">&copy; 2025 spinnyWheels. All rights reserved.</p>
+            <div class="flex gap-6">
+                <a href="#" class="text-slate-400 hover:text-white transition-colors text-sm">Privacy Policy</a>
+                <a href="#" class="text-slate-400 hover:text-white transition-colors text-sm">Terms of Service</a>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock %}

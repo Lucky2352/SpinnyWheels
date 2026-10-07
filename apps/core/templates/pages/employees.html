@@ -1,0 +1,410 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}Employees{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-employees-root>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Employees</h1>
+            <p class="mt-1 text-slate-600">Everyone on staff at your dealership</p>
+        </div>
+        <button type="button" data-modal-toggle="employeeModal" data-owner-only class="hidden inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Add Employee
+        </button>
+    </div>
+
+    <div id="employeesDenied" class="hidden bg-white rounded-xl border border-slate-200 px-6 py-12 text-center">
+        <svg class="mx-auto h-10 w-10 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+        <h3 class="mt-3 text-lg font-medium text-slate-900">Owner or admin access required</h3>
+        <p class="mt-1 text-slate-500">Only the dealership owner and admins can manage employees.</p>
+    </div>
+
+    <div id="employeesPanel" class="hidden bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+        <div data-state="loading" class="hidden py-12 text-center">
+            <div class="inline-flex items-center gap-3 text-slate-600">
+                <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                <span>Loading employees...</span>
+            </div>
+        </div>
+        <div data-state="error" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load employees</h3>
+            <p class="mt-1 text-slate-500" data-error-text></p>
+            <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+        </div>
+        <div data-state="empty" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">No staff yet</h3>
+            <p class="mt-1 text-slate-500">Add your first employee to build the service team.</p>
+            <button type="button" data-modal-toggle="employeeModal" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Add Employee</button>
+        </div>
+        <div data-state="content">
+            <div class="px-5 py-4 border-b border-slate-200">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div class="relative flex-1">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+                        <input type="search" id="employeeSearch" placeholder="Search name or email..." class="appearance-none w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <select id="employeeFilter" class="appearance-none px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                        <option value="">All staff</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full" role="table">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Phone</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Role</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                            <th class="px-5 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200" data-employee-list></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="employeeModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="employeeModalTitle" role="dialog" aria-modal="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50" data-modal-close></div>
+            <div class="relative w-full max-w-2xl bg-white rounded-xl shadow-xl p-6" data-modal>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="employeeModalTitle" class="text-xl font-semibold text-slate-900" data-modal-heading>Add Employee</h2>
+                    <button type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" data-modal-close aria-label="Close modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form id="employeeForm" class="space-y-5" novalidate>
+                    <input type="hidden" id="eEmployeeId" value="">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="eFirstName" class="block text-sm font-medium text-slate-700 mb-1.5">First Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="eFirstName" name="first_name" required maxlength="100" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Asha">
+                        </div>
+                        <div>
+                            <label for="eLastName" class="block text-sm font-medium text-slate-700 mb-1.5">Last Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="eLastName" name="last_name" required maxlength="100" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Menon">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="eEmail" class="block text-sm font-medium text-slate-700 mb-1.5">Email <span class="text-red-500">*</span></label>
+                            <input type="email" id="eEmail" name="email" required maxlength="254" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="asha@dealership.test">
+                        </div>
+                        <div>
+                            <label for="ePhone" class="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
+                            <input type="text" id="ePhone" name="phone" maxlength="20" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="9876543210">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="eRole" class="block text-sm font-medium text-slate-700 mb-1.5">Role <span class="text-red-500">*</span></label>
+                        <select id="eRole" name="role" required class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                            <option value="EMPLOYEE">Employee</option>
+                            <option value="TECHNICIAN">Technician</option>
+                        </select>
+                        <p class="mt-1.5 text-xs text-slate-500">The dealership owner account cannot be created or edited here.</p>
+                    </div>
+                    <div class="flex items-center gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-modal-close>Cancel</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Save Employee</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const denied = document.getElementById('employeesDenied');
+        const panel = document.getElementById('employeesPanel');
+        const list = document.querySelector('[data-employee-list]');
+        const retryBtn = document.querySelector('[data-retry]');
+        const searchInput = document.getElementById('employeeSearch');
+        const filterSelect = document.getElementById('employeeFilter');
+        const modal = document.getElementById('employeeModal');
+        const modalHeading = document.querySelector('[data-modal-heading]');
+        const form = document.getElementById('employeeForm');
+
+        const employeeIdInput = document.getElementById('eEmployeeId');
+        const firstNameInput = document.getElementById('eFirstName');
+        const lastNameInput = document.getElementById('eLastName');
+        const emailInput = document.getElementById('eEmail');
+        const phoneInput = document.getElementById('ePhone');
+        const roleSelect = document.getElementById('eRole');
+
+        let employees = [];
+        let requestInFlight = false;
+        let submitting = false;
+
+        function statusBadge(employee) {
+            return employee.is_active
+                ? { label: 'Active', classes: 'bg-green-100 text-green-800' }
+                : { label: 'Inactive', classes: 'bg-slate-100 text-slate-600' };
+        }
+
+        function buildRow(employee) {
+            const badge = statusBadge(employee);
+            const isOwner = employee.role === 'OWNER';
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="px-5 py-4 font-medium text-slate-900" data-name></td>
+                <td class="px-5 py-4 text-sm text-slate-600" data-email></td>
+                <td class="px-5 py-4 text-sm text-slate-600 whitespace-nowrap" data-phone></td>
+                <td class="px-5 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700" data-role></span>
+                    <span class="inline-flex ml-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 hidden" data-tech-badge>Technician profile</span>
+                </td>
+                <td class="px-5 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium" data-status></span>
+                    <span class="block mt-1 text-xs text-slate-400" data-login></span>
+                </td>
+                <td class="px-5 py-4 whitespace-nowrap text-right" data-actions></td>`;
+
+            row.querySelector('[data-name]').textContent = employee.full_name;
+            row.querySelector('[data-email]').textContent = employee.email;
+            row.querySelector('[data-phone]').textContent = employee.phone || '—';
+            row.querySelector('[data-role]').textContent = employee.role_display;
+            row.querySelector('[data-status]').textContent = badge.label;
+            row.querySelector('[data-status]').classList.add(...badge.classes.split(' '));
+            row.querySelector('[data-login]').textContent = employee.external_user_id
+                ? 'Sign-in linked'
+                : 'Sign-in not linked';
+            row.querySelector('[data-tech-badge]').classList.toggle('hidden', !employee.is_technician);
+
+            const actions = row.querySelector('[data-actions]');
+
+            if (isOwner) {
+                const note = document.createElement('span');
+                note.className = 'text-xs text-slate-400';
+                note.textContent = 'Owner account is managed separately';
+                actions.appendChild(note);
+                return row;
+            }
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors';
+            editBtn.textContent = 'Edit';
+            editBtn.addEventListener('click', () => openEdit(employee));
+            actions.appendChild(editBtn);
+
+            const toggleBtn = document.createElement('button');
+            toggleBtn.type = 'button';
+            toggleBtn.className = 'ml-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors';
+            toggleBtn.textContent = employee.is_active ? 'Deactivate' : 'Reactivate';
+            const toggleClasses = employee.is_active
+                ? 'border-red-200 bg-white text-red-600 hover:bg-red-50'
+                : 'border-green-200 bg-white text-green-700 hover:bg-green-50';
+            toggleBtn.classList.add(...toggleClasses.split(' '));
+            toggleBtn.addEventListener('click', () => toggleActive(employee, toggleBtn));
+            actions.appendChild(toggleBtn);
+
+            return row;
+        }
+
+        function render() {
+            const term = searchInput.value.trim().toLowerCase();
+            const filter = filterSelect.value;
+
+            const filtered = employees.filter(employee => {
+                const haystack = `${employee.full_name} ${employee.email}`.toLowerCase();
+                if (term && !haystack.includes(term)) return false;
+                if (filter === 'active' && !employee.is_active) return false;
+                if (filter === 'inactive' && employee.is_active) return false;
+                return true;
+            });
+
+            list.innerHTML = '';
+
+            if (!employees.length) {
+                ui.setContainerState(panel, 'empty');
+                return;
+            }
+
+            if (!filtered.length) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 6;
+                cell.className = 'px-5 py-12 text-center text-slate-500';
+                cell.textContent = 'No employees match your search.';
+                row.appendChild(cell);
+                list.appendChild(row);
+                ui.setContainerState(panel, 'content');
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            filtered.forEach(employee => fragment.appendChild(buildRow(employee)));
+            list.appendChild(fragment);
+            ui.setContainerState(panel, 'content');
+        }
+
+        async function loadEmployees() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(panel, 'loading');
+
+            try {
+                const data = await api.employees.list();
+                employees = Array.isArray(data) ? data : [];
+                render();
+            } catch (err) {
+                employees = [];
+                list.innerHTML = '';
+                if (err.status === 401 || err.status === 403) return;
+                ui.setContainerState(panel, 'error', { errorText: ui.errorMessageFor(err) });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        function setCreateDefaults() {
+            modalHeading.textContent = 'Add Employee';
+            employeeIdInput.value = '';
+            form.reset();
+            roleSelect.value = 'EMPLOYEE';
+            firstNameInput.required = true;
+            lastNameInput.required = true;
+            emailInput.required = true;
+            roleSelect.required = true;
+        }
+
+        function openEdit(employee) {
+            modalHeading.textContent = 'Edit Employee';
+            employeeIdInput.value = employee.id;
+            firstNameInput.value = employee.first_name;
+            lastNameInput.value = employee.last_name;
+            emailInput.value = employee.email;
+            phoneInput.value = employee.phone || '';
+            roleSelect.value = employee.role;
+            firstNameInput.required = false;
+            lastNameInput.required = false;
+            emailInput.required = false;
+            roleSelect.required = false;
+            ui.openModal(modal);
+        }
+
+        async function toggleActive(employee, button) {
+            if (submitting) return;
+
+            if (employee.is_active) {
+                const confirmed = window.confirm(
+                    `Deactivate ${employee.full_name}? Their sign-in will stop working immediately.`
+                );
+                if (!confirmed) return;
+            }
+
+            submitting = true;
+            button.disabled = true;
+
+            try {
+                if (employee.is_active) {
+                    await api.employees.deactivate(employee.id);
+                    ui.showToast('Employee deactivated.');
+                } else {
+                    await api.employees.update(employee.id, { is_active: true });
+                    ui.showToast('Employee reactivated.');
+                }
+                await loadEmployees();
+            } catch (err) {
+                if (err.status === 401) return;
+                button.disabled = false;
+                ui.showToast(ui.errorMessageFor(err), 'error');
+            } finally {
+                submitting = false;
+            }
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (submitting) return;
+
+            const employeeId = employeeIdInput.value;
+            const isEdit = Boolean(employeeId);
+
+            if (!emailInput.value.trim()) {
+                ui.showFormError(form, 'Please enter an email address.');
+                return;
+            }
+            if (!isEdit && (!firstNameInput.value.trim() || !lastNameInput.value.trim())) {
+                ui.showFormError(form, 'Please enter the first and last name.');
+                return;
+            }
+
+            const payload = {
+                first_name: firstNameInput.value.trim(),
+                last_name: lastNameInput.value.trim(),
+                email: emailInput.value.trim(),
+                phone: phoneInput.value.trim(),
+                role: roleSelect.value,
+            };
+
+            submitting = true;
+            ui.setSubmitting(form, true, 'Saving...');
+
+            try {
+                if (isEdit) {
+                    await api.employees.update(employeeId, payload);
+                    ui.showToast('Employee updated.');
+                } else {
+                    await api.employees.create(payload);
+                    ui.showToast('Employee added.');
+                }
+
+                ui.closeModal(modal);
+                form.reset();
+                ui.clearFormError(form);
+                await loadEmployees();
+            } catch (err) {
+                if (err.status === 401) return;
+                const fieldErrors = err.errors ? Object.values(err.errors).join(' ') : null;
+                ui.showFormError(form, fieldErrors || ui.errorMessageFor(err));
+            } finally {
+                submitting = false;
+                ui.setSubmitting(form, false);
+            }
+        });
+
+        document.querySelectorAll('[data-modal-toggle="employeeModal"]').forEach(button => {
+            button.addEventListener('click', setCreateDefaults);
+        });
+
+        searchInput.addEventListener('input', render);
+        filterSelect.addEventListener('change', render);
+        retryBtn.addEventListener('click', loadEmployees);
+
+        async function start() {
+            const user = await ui.loadCurrentUser();
+
+            if (!user || !user.can_manage_inventory) {
+                denied.classList.remove('hidden');
+                ui.applyRoleVisibility(user);
+                return;
+            }
+
+            ui.applyRoleVisibility(user);
+            panel.classList.remove('hidden');
+            loadEmployees();
+        }
+
+        start();
+    })();
+</script>
+{% endblock %}

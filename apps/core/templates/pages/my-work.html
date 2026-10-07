@@ -1,0 +1,316 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}My Work{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-my-work-root>
+    <div>
+        <h1 class="text-2xl font-bold text-slate-900">My Work</h1>
+        <p class="mt-1 text-slate-600">Service jobs assigned to you</p>
+    </div>
+
+    <div id="myWorkDenied" class="hidden bg-white rounded-xl border border-slate-200 px-6 py-12 text-center">
+        <svg class="mx-auto h-10 w-10 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+        <h3 class="mt-3 text-lg font-medium text-slate-900">Technician access required</h3>
+        <p class="mt-1 text-slate-500">Only technician accounts can open their assigned work.</p>
+    </div>
+
+    <div id="myWorkPanel" class="hidden bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+        <div data-state="loading" class="hidden py-12 text-center">
+            <div class="inline-flex items-center gap-3 text-slate-600">
+                <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                <span>Loading your work...</span>
+            </div>
+        </div>
+        <div data-state="error" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 18 0 0118 0z"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load your work</h3>
+            <p class="mt-1 text-slate-500" data-error-text></p>
+            <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+        </div>
+        <div data-state="empty" class="hidden py-12 text-center">
+            <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+            <h3 class="mt-3 text-lg font-medium text-slate-900">No jobs assigned</h3>
+            <p class="mt-1 text-slate-500">When the front desk assigns you a service job it will show up here.</p>
+        </div>
+        <div data-state="content">
+            <div class="px-5 py-4 border-b border-slate-200">
+                <select id="assignmentFilter" class="appearance-none px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                    <option value="">All assignments</option>
+                    <option value="ASSIGNED">Assigned</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+            </div>
+            <div class="divide-y divide-slate-200" data-assignment-list></div>
+        </div>
+    </div>
+
+    <div id="completeModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="completeModalTitle" role="dialog" aria-modal="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50" data-modal-close></div>
+            <div class="relative w-full max-w-xl bg-white rounded-xl shadow-xl p-6" data-modal>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="completeModalTitle" class="text-xl font-semibold text-slate-900" data-modal-heading>Complete Job</h2>
+                    <button type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" data-modal-close aria-label="Close modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form id="completeForm" class="space-y-5" novalidate>
+                    <input type="hidden" id="cAssignmentId" value="">
+                    <div>
+                        <label for="cDescription" class="block text-sm font-medium text-slate-700 mb-1.5">Work Performed <span class="text-red-500">*</span></label>
+                        <textarea id="cDescription" rows="4" required maxlength="4000" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="Replaced engine oil, oil filter and inspected brakes"></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="cParts" class="block text-sm font-medium text-slate-700 mb-1.5">Parts Cost (INR)</label>
+                            <input type="number" id="cParts" min="0" step="0.01" value="0" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                        </div>
+                        <div>
+                            <label for="cLabor" class="block text-sm font-medium text-slate-700 mb-1.5">Labor Cost (INR)</label>
+                            <input type="number" id="cLabor" min="0" step="0.01" value="0" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="cServiceDate" class="block text-sm font-medium text-slate-700 mb-1.5">Service Date</label>
+                        <input type="date" id="cServiceDate" class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <div class="flex items-center gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-modal-close>Cancel</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Mark Complete</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const denied = document.getElementById('myWorkDenied');
+        const panel = document.getElementById('myWorkPanel');
+        const list = document.querySelector('[data-assignment-list]');
+        const retryBtn = document.querySelector('[data-retry]');
+        const filterSelect = document.getElementById('assignmentFilter');
+
+        const completeModal = document.getElementById('completeModal');
+        const completeForm = document.getElementById('completeForm');
+        const assignmentIdInput = document.getElementById('cAssignmentId');
+        const descriptionInput = document.getElementById('cDescription');
+        const partsInput = document.getElementById('cParts');
+        const laborInput = document.getElementById('cLabor');
+        const serviceDateInput = document.getElementById('cServiceDate');
+
+        let assignments = [];
+        let requestInFlight = false;
+        let submitting = false;
+
+        function buildCard(assignment) {
+            const detail = assignment.service_request_detail;
+
+            const card = document.createElement('div');
+            card.className = 'px-5 py-4 hover:bg-slate-50';
+            card.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-medium text-slate-900" data-vehicle></p>
+                        <p class="text-sm text-slate-600" data-service></p>
+                        <p class="mt-1 text-sm text-slate-600" data-problem></p>
+                        <p class="mt-1 text-xs text-slate-500" data-assigned></p>
+                    </div>
+                    <div class="flex flex-col items-start sm:items-end gap-2">
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium" data-status></span>
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium" data-request-status></span>
+                        <div data-actions class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>`;
+
+            card.querySelector('[data-vehicle]').textContent =
+                `${detail.registration_number} — ${detail.customer_name}`;
+            card.querySelector('[data-service]').textContent = detail.service_type_display;
+            card.querySelector('[data-problem]').textContent = detail.problem_description;
+            card.querySelector('[data-assigned]').textContent =
+                `Assigned ${ui.formatDateTime(assignment.assigned_at)}`;
+
+            const statusEl = card.querySelector('[data-status]');
+            statusEl.textContent = assignment.status_display;
+            statusEl.classList.add(
+                ...(assignment.status === 'COMPLETED'
+                    ? 'bg-green-100 text-green-800'
+                    : assignment.status === 'IN_PROGRESS'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-amber-100 text-amber-800').split(' ')
+            );
+
+            const requestStatusEl = card.querySelector('[data-request-status]');
+            requestStatusEl.textContent = detail.status_display;
+            requestStatusEl.classList.add(...ui.serviceStatusBadge(detail.status).split(' '));
+
+            const actions = card.querySelector('[data-actions]');
+
+            if (assignment.status === 'ASSIGNED') {
+                const startBtn = document.createElement('button');
+                startBtn.type = 'button';
+                startBtn.className = 'rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+                startBtn.textContent = 'Start Job';
+                startBtn.addEventListener('click', () => startJob(assignment, startBtn));
+                actions.appendChild(startBtn);
+            }
+
+            if (assignment.status !== 'COMPLETED') {
+                const completeBtn = document.createElement('button');
+                completeBtn.type = 'button';
+                completeBtn.className = 'rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors';
+                completeBtn.textContent = 'Complete';
+                completeBtn.addEventListener('click', () => openComplete(assignment));
+                actions.appendChild(completeBtn);
+            }
+
+            return card;
+        }
+
+        function render() {
+            const filter = filterSelect.value;
+            const filtered = filter
+                ? assignments.filter(assignment => assignment.status === filter)
+                : assignments;
+
+            list.innerHTML = '';
+
+            if (!assignments.length) {
+                ui.setContainerState(panel, 'empty');
+                return;
+            }
+
+            if (!filtered.length) {
+                const row = document.createElement('p');
+                row.className = 'px-5 py-12 text-center text-slate-500';
+                row.textContent = 'No assignments match this filter.';
+                list.appendChild(row);
+                ui.setContainerState(panel, 'content');
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            filtered.forEach(assignment => fragment.appendChild(buildCard(assignment)));
+            list.appendChild(fragment);
+            ui.setContainerState(panel, 'content');
+        }
+
+        async function loadAssignments() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(panel, 'loading');
+
+            try {
+                const data = await api.technicianAssignments.list({ status: filterSelect.value });
+                assignments = Array.isArray(data) ? data : [];
+                render();
+            } catch (err) {
+                assignments = [];
+                list.innerHTML = '';
+                if (err.status === 401 || err.status === 403) return;
+                ui.setContainerState(panel, 'error', { errorText: ui.errorMessageFor(err) });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        async function startJob(assignment, button) {
+            if (submitting) return;
+            submitting = true;
+            button.disabled = true;
+
+            try {
+                await api.technicianAssignments.start(assignment.id);
+                ui.showToast('Job started.');
+                await loadAssignments();
+            } catch (err) {
+                if (err.status === 401) return;
+                button.disabled = false;
+                ui.showToast(ui.errorMessageFor(err), 'error');
+            } finally {
+                submitting = false;
+            }
+        }
+
+        function openComplete(assignment) {
+            assignmentIdInput.value = assignment.id;
+            completeForm.reset();
+            partsInput.value = '0';
+            laborInput.value = '0';
+            serviceDateInput.value = ui.todayIso();
+            ui.clearFormError(completeForm);
+            ui.openModal(completeModal);
+        }
+
+        completeForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (submitting) return;
+
+            const description = descriptionInput.value.trim();
+            if (!description) {
+                ui.showFormError(completeForm, 'Please describe the work you carried out.');
+                return;
+            }
+
+            const parts = Number(partsInput.value);
+            const labor = Number(laborInput.value);
+
+            if (!Number.isFinite(parts) || parts < 0 || !Number.isFinite(labor) || labor < 0) {
+                ui.showFormError(completeForm, 'Costs must be zero or greater.');
+                return;
+            }
+
+            submitting = true;
+            ui.setSubmitting(completeForm, true, 'Saving...');
+
+            try {
+                await api.technicianAssignments.complete(assignmentIdInput.value, {
+                    description: description,
+                    parts_cost: parts,
+                    labor_cost: labor,
+                    service_date: serviceDateInput.value,
+                });
+                ui.showToast('Job completed.');
+                ui.closeModal(completeModal);
+                await loadAssignments();
+            } catch (err) {
+                if (err.status === 401) return;
+                const fieldErrors = err.errors ? Object.values(err.errors).join(' ') : null;
+                ui.showFormError(completeForm, fieldErrors || ui.errorMessageFor(err));
+            } finally {
+                submitting = false;
+                ui.setSubmitting(completeForm, false);
+            }
+        });
+
+        filterSelect.addEventListener('change', loadAssignments);
+        retryBtn.addEventListener('click', loadAssignments);
+
+        async function start() {
+            const user = await ui.loadCurrentUser();
+
+            if (!user || !user.is_technician) {
+                denied.classList.remove('hidden');
+                ui.applyRoleVisibility(user);
+                return;
+            }
+
+            ui.applyRoleVisibility(user);
+            panel.classList.remove('hidden');
+            loadAssignments();
+        }
+
+        start();
+    })();
+</script>
+{% endblock %}

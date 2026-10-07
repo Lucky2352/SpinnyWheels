@@ -1,0 +1,387 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}Appointments{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-appointments-root>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Appointments</h1>
+            <p class="mt-1 text-slate-600">Manage your test drives and service appointments</p>
+        </div>
+        <button type="button" data-modal-toggle="testDriveModal" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            Book Test Drive
+        </button>
+    </div>
+
+    <section aria-labelledby="upcoming-heading">
+        <div class="flex items-center justify-between mb-4">
+            <h2 id="upcoming-heading" class="text-lg font-semibold text-slate-900">Upcoming Appointments</h2>
+            <span data-upcoming-count class="text-sm text-slate-500"></span>
+        </div>
+        <div id="upcomingPanel" class="bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+            <div data-state="loading" class="hidden py-12 text-center">
+                <div class="inline-flex items-center gap-3 text-slate-600">
+                    <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span>Loading appointments...</span>
+                </div>
+            </div>
+            <div data-state="error" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load appointments</h3>
+                <p class="mt-1 text-slate-500" data-error-text></p>
+                <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+            </div>
+            <div data-state="empty" class="hidden p-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <h3 class="mt-4 text-lg font-medium text-slate-900">No upcoming appointments</h3>
+                <p class="mt-1 text-slate-500">You don't have any upcoming appointments scheduled.</p>
+                <button type="button" data-modal-toggle="testDriveModal" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+                    Book Test Drive
+                </button>
+            </div>
+            <div data-state="content">
+                <div class="divide-y divide-slate-200" data-upcoming-list></div>
+            </div>
+        </div>
+    </section>
+
+    <section aria-labelledby="history-heading" class="mt-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 id="history-heading" class="text-lg font-semibold text-slate-900">Appointment History</h2>
+            <span data-history-count class="text-sm text-slate-500"></span>
+        </div>
+        <div id="historyPanel" class="bg-white rounded-xl border border-slate-200 overflow-hidden" data-state="content">
+            <div data-state="loading" class="hidden py-12 text-center">
+                <div class="inline-flex items-center gap-3 text-slate-600">
+                    <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span>Loading history...</span>
+                </div>
+            </div>
+            <div data-state="error" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="mt-3 text-lg font-medium text-slate-900">Could not load history</h3>
+                <p class="mt-1 text-slate-500" data-error-text></p>
+            </div>
+            <div data-state="empty" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <p class="mt-3 text-slate-500">No appointment history yet</p>
+            </div>
+            <div data-state="content">
+                <div class="overflow-x-auto">
+                    <table class="w-full" role="table">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Time</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Type</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Dealership</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200" data-history-list></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="testDriveModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="testDriveModalTitle" role="dialog" aria-modal="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50" data-modal-close></div>
+            <div class="relative w-full max-w-lg bg-white rounded-xl shadow-xl p-6" data-modal>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="testDriveModalTitle" class="text-xl font-semibold text-slate-900">Book Test Drive</h2>
+                    <button type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" data-modal-close aria-label="Close modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form id="testDriveForm" class="space-y-5" novalidate>
+                    <div>
+                        <label for="tdVehicle" class="block text-sm font-medium text-slate-700 mb-1.5">Vehicle <span class="text-red-500">*</span></label>
+                        <select id="tdVehicle" name="vehicle_id" required class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white">
+                            <option value="">Loading vehicles...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="tdDate" class="block text-sm font-medium text-slate-700 mb-1.5">Preferred date <span class="text-red-500">*</span></label>
+                        <input type="date" id="tdDate" name="scheduled_date" required
+                            class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="tdTime" class="block text-sm font-medium text-slate-700 mb-1.5">Preferred time <span class="text-red-500">*</span></label>
+                        <input type="time" id="tdTime" name="scheduled_time" required
+                            class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="tdNotes" class="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>
+                        <textarea id="tdNotes" name="notes" rows="3"
+                            class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                            placeholder="Anything we should know before your visit?"></textarea>
+                    </div>
+                    <div class="flex gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-modal-close>Cancel</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Confirm Booking</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const upcomingPanel = document.getElementById('upcomingPanel');
+        const historyPanel = document.getElementById('historyPanel');
+        const upcomingList = document.querySelector('[data-upcoming-list]');
+        const historyList = document.querySelector('[data-history-list]');
+        const upcomingCount = document.querySelector('[data-upcoming-count]');
+        const historyCount = document.querySelector('[data-history-count]');
+        const retryBtn = document.querySelector('[data-retry]');
+        const vehicleSelect = document.getElementById('tdVehicle');
+        const form = document.getElementById('testDriveForm');
+        const modal = document.getElementById('testDriveModal');
+
+        const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS'];
+
+        let appointments = [];
+        let availableVehicles = [];
+        let requestInFlight = false;
+        let submitting = false;
+
+        function isUpcoming(appointment) {
+            const today = ui.todayIso();
+            return appointment.scheduled_date >= today && ACTIVE_STATUSES.includes(appointment.status);
+        }
+
+        function isHistory(appointment) {
+            return !isUpcoming(appointment);
+        }
+
+        function buildUpcomingRow(appointment) {
+            const article = document.createElement('article');
+            article.className = 'p-5 hover:bg-slate-50 transition-colors';
+            article.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-slate-900" data-type></h3>
+                            <p class="text-sm text-slate-500" data-dealership></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-sm text-slate-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span data-when></span>
+                    </div>
+                    <span data-badge class="px-2.5 py-1 text-xs font-medium rounded-full"></span>
+                </div>`;
+
+            article.querySelector('[data-type]').textContent =
+                appointment.appointment_type_display || appointment.appointment_type;
+            article.querySelector('[data-dealership]').textContent =
+                appointment.dealership_name || `Dealership ${appointment.dealership}`;
+            article.querySelector('[data-when]').textContent =
+                `${ui.formatDate(appointment.scheduled_date)} at ${appointment.scheduled_time}`;
+
+            const badge = article.querySelector('[data-badge]');
+            badge.textContent = appointment.status_display || appointment.status;
+            badge.classList.add(...ui.appointmentStatusBadge(appointment.status).split(' '));
+
+            if (appointment.notes) {
+                const note = document.createElement('p');
+                note.className = 'mt-2 text-sm text-slate-500';
+                note.textContent = appointment.notes;
+                article.querySelector('h3').parentNode.appendChild(note);
+            }
+
+            return article;
+        }
+
+        function buildHistoryRow(appointment) {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-50';
+            row.innerHTML = `
+                <td class="px-5 py-4 text-sm text-slate-900 whitespace-nowrap" data-date></td>
+                <td class="px-5 py-4 text-sm text-slate-900 whitespace-nowrap" data-time></td>
+                <td class="px-5 py-4 text-sm text-slate-600" data-type></td>
+                <td class="px-5 py-4 text-sm text-slate-600" data-dealership></td>
+                <td class="px-5 py-4">
+                    <span data-badge class="px-2.5 py-1 text-xs font-medium rounded-full"></span>
+                </td>`;
+
+            row.querySelector('[data-date]').textContent = ui.formatDate(appointment.scheduled_date);
+            row.querySelector('[data-time]').textContent = appointment.scheduled_time;
+            row.querySelector('[data-type]').textContent =
+                appointment.appointment_type_display || appointment.appointment_type;
+            row.querySelector('[data-dealership]').textContent =
+                appointment.dealership_name || `Dealership ${appointment.dealership}`;
+
+            const badge = row.querySelector('[data-badge]');
+            badge.textContent = appointment.status_display || appointment.status;
+            badge.classList.add(...ui.appointmentStatusBadge(appointment.status).split(' '));
+
+            return row;
+        }
+
+        function render() {
+            const upcoming = appointments.filter(isUpcoming);
+            const history = appointments.filter(isHistory).reverse();
+
+            upcomingList.innerHTML = '';
+            historyList.innerHTML = '';
+
+            upcomingCount.textContent = upcoming.length
+                ? `${upcoming.length} scheduled`
+                : '';
+
+            if (upcoming.length) {
+                const fragment = document.createDocumentFragment();
+                upcoming.forEach(item => fragment.appendChild(buildUpcomingRow(item)));
+                upcomingList.appendChild(fragment);
+                ui.setContainerState(upcomingPanel, 'content');
+            } else {
+                ui.setContainerState(upcomingPanel, 'empty');
+            }
+
+            if (history.length) {
+                const fragment = document.createDocumentFragment();
+                history.forEach(item => fragment.appendChild(buildHistoryRow(item)));
+                historyList.appendChild(fragment);
+                ui.setContainerState(historyPanel, 'content');
+            } else {
+                ui.setContainerState(historyPanel, 'empty');
+            }
+        }
+
+        async function loadAppointments() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(upcomingPanel, 'loading');
+            ui.setContainerState(historyPanel, 'loading');
+            upcomingCount.textContent = '';
+            historyCount.textContent = '';
+
+            try {
+                const data = await api.appointments.list();
+                appointments = Array.isArray(data) ? data : [];
+                render();
+            } catch (err) {
+                appointments = [];
+                upcomingList.innerHTML = '';
+                historyList.innerHTML = '';
+                if (err.status === 401) return;
+                const message = ui.errorMessageFor(err);
+                ui.setContainerState(upcomingPanel, 'error', { errorText: message });
+                ui.setContainerState(historyPanel, 'error', { errorText: message });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        async function loadVehicles() {
+            try {
+                const vehicles = await api.vehicles.available();
+                availableVehicles = (Array.isArray(vehicles) ? vehicles : [])
+                    .filter(vehicle => vehicle.is_in_stock);
+
+                vehicleSelect.innerHTML = '<option value="">Select a vehicle</option>';
+                availableVehicles.forEach(vehicle => {
+                    const option = document.createElement('option');
+                    option.value = vehicle.id;
+                    option.textContent = `${vehicle.manufacturing_year} ${vehicle.brand} ${vehicle.model}${vehicle.variant ? ` ${vehicle.variant}` : ''}`;
+                    vehicleSelect.appendChild(option);
+                });
+
+                if (!availableVehicles.length) {
+                    vehicleSelect.innerHTML = '<option value="">No vehicles available</option>';
+                    vehicleSelect.disabled = true;
+                }
+            } catch (err) {
+                if (err.status === 401) return;
+                vehicleSelect.innerHTML = '<option value="">Could not load vehicles</option>';
+                vehicleSelect.disabled = true;
+            }
+        }
+
+        function validateForm() {
+            const dateInput = document.getElementById('tdDate');
+            const timeInput = document.getElementById('tdTime');
+
+            if (!vehicleSelect.value) {
+                ui.showFormError(form, 'Please select a vehicle.');
+                return false;
+            }
+            if (!dateInput.value) {
+                ui.showFormError(form, 'Please choose a preferred date.');
+                return false;
+            }
+            if (dateInput.value < ui.todayIso()) {
+                ui.showFormError(form, 'Please choose a date that is not in the past.');
+                return false;
+            }
+            if (!timeInput.value) {
+                ui.showFormError(form, 'Please choose a preferred time.');
+                return false;
+            }
+
+            ui.clearFormError(form);
+            return true;
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (submitting) return;
+            if (!validateForm()) return;
+
+            const vehicle = availableVehicles.find(item => item.id === Number(vehicleSelect.value));
+            if (!vehicle) {
+                ui.showFormError(form, 'Please select a vehicle.');
+                return;
+            }
+
+            submitting = true;
+            ui.setSubmitting(form, true, 'Booking...');
+
+            try {
+                await api.appointments.createTestDrive({
+                    dealership_id: vehicle.dealership,
+                    vehicle_id: vehicle.id,
+                    scheduled_date: document.getElementById('tdDate').value,
+                    scheduled_time: document.getElementById('tdTime').value,
+                    notes: document.getElementById('tdNotes').value.trim(),
+                });
+
+                ui.closeModal(modal);
+                form.reset();
+                ui.clearFormError(form);
+                ui.showToast('Test drive booked successfully.');
+                await loadAppointments();
+            } catch (err) {
+                if (err.status === 401) return;
+                const fieldErrors = err.errors ? Object.values(err.errors).join(' ') : null;
+                ui.showFormError(form, fieldErrors || ui.errorMessageFor(err));
+            } finally {
+                submitting = false;
+                ui.setSubmitting(form, false);
+            }
+        });
+
+        retryBtn.addEventListener('click', loadAppointments);
+        document.getElementById('tdDate').min = ui.todayIso();
+
+        loadVehicles();
+        loadAppointments();
+    })();
+</script>
+{% endblock %}

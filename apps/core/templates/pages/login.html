@@ -1,0 +1,201 @@
+{% extends "base/base.html" %}
+
+{% block title %}spinnyWheels{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <div class="mx-auto h-12 px-4 rounded-lg bg-primary-100 flex items-center justify-center mb-6">
+                <span class="text-xl font-bold text-primary-700">spinnyWheels</span>
+            </div>
+            <h2 class="text-3xl font-bold text-slate-900">Welcome back</h2>
+            <p class="mt-2 text-slate-600">Sign in to your account to continue</p>
+        </div>
+
+        <form class="mt-8 space-y-6" id="loginForm" novalidate>
+            <div class="rounded-lg bg-white p-6 shadow-sm border border-slate-200 space-y-5">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        </div>
+                        <input id="email" name="email" type="email" autocomplete="email" required
+                            class="appearance-none relative block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                            placeholder="you@example.com">
+                    </div>
+                    <p class="mt-1.5 text-sm text-red-600 hidden" id="emailError">Please enter a valid email address</p>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between">
+                        <label for="password" class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+                        <a href="#" class="text-sm font-medium text-primary-600 hover:text-primary-700">Forgot password?</a>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        </div>
+                        <input id="password" name="password" type="password" autocomplete="current-password" required
+                            class="appearance-none relative block w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                            placeholder="••••••••">
+                        <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center" aria-label="Toggle password visibility">
+                            <svg class="h-5 w-5 text-slate-400 hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </button>
+                    </div>
+                    <p class="mt-1.5 text-sm text-red-600 hidden" id="passwordError">Password is required</p>
+                </div>
+
+                <div class="flex items-center">
+                    <input id="remember" name="remember" type="checkbox"
+                        class="h-4 w-4 text-primary-600 border-slate-300 rounded focus:ring-2 focus:ring-primary-500">
+                    <label for="remember" class="ml-2 block text-sm text-slate-700">Remember me</label>
+                </div>
+
+                <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    Sign in
+                </button>
+            </div>
+        </form>
+
+        <div class="text-center">
+            <p class="text-sm text-slate-600">
+                Don't have an account?
+                <a href="{% url 'register' %}" class="font-medium text-primary-600 hover:text-primary-700">Create one</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const emailError = document.getElementById('emailError');
+        const passwordError = document.getElementById('passwordError');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function showError(input, errorEl, message) {
+            input.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+            input.classList.remove('border-slate-300', 'focus:ring-primary-500', 'focus:border-primary-500');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        function clearError(input, errorEl) {
+            input.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+            input.classList.add('border-slate-300', 'focus:ring-primary-500', 'focus:border-primary-500');
+            errorEl.classList.add('hidden');
+        }
+
+        emailInput.addEventListener('blur', function() {
+            if (this.value && !validateEmail(this.value)) {
+                showError(this, emailError, 'Please enter a valid email address');
+            } else {
+                clearError(this, emailError);
+            }
+        });
+
+        emailInput.addEventListener('input', function() {
+            if (this.value && validateEmail(this.value)) {
+                clearError(this, emailError);
+            }
+        });
+
+        passwordInput.addEventListener('blur', function() {
+            if (!this.value) {
+                showError(this, passwordError, 'Password is required');
+            } else {
+                clearError(this, passwordError);
+            }
+        });
+
+        passwordInput.addEventListener('input', function() {
+            if (this.value) {
+                clearError(this, passwordError);
+            }
+        });
+
+        function setLoading(loading) {
+            submitBtn.disabled = loading;
+            submitBtn.innerHTML = loading
+                ? '<svg class="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>Signing in...'
+                : 'Sign in';
+        }
+
+        form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    let valid = true;
+
+    if (!emailInput.value || !validateEmail(emailInput.value)) {
+        showError(emailInput, emailError, 'Please enter a valid email address');
+        valid = false;
+    } else {
+        clearError(emailInput, emailError);
+    }
+
+    if (!passwordInput.value) {
+        showError(passwordInput, passwordError, 'Password is required');
+        valid = false;
+    } else {
+        clearError(passwordInput, passwordError);
+    }
+
+    if (!valid) return;
+
+    setLoading(true);
+
+    try {
+        if (!window.AutoFlowAuth) {
+            throw new Error('Supabase not initialized');
+        }
+
+        const { data, error } = await window.AutoFlowAuth.getSupabaseClient().auth.signInWithPassword({
+            email: emailInput.value,
+            password: passwordInput.value,
+        });
+
+        if (error) {
+            showError(emailInput, emailError, error.message);
+            setLoading(false);
+            return;
+        }
+
+        const session = data?.session;
+
+        if (!session) {
+            showError(emailInput, emailError, 'Login succeeded but no session was created. Please try again.');
+            setLoading(false);
+            return;
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get('redirect') || '/dashboard/';
+
+        window.location.href = redirect;
+
+    } catch (err) {
+        console.error('Login error:', err);
+        showError(emailInput, emailError, 'An error occurred. Please try again.');
+        setLoading(false);
+    }
+});
+        const toggleBtn = document.querySelector('[aria-label="Toggle password visibility"]');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+                this.querySelector('svg').classList.toggle('text-slate-600');
+            });
+        }
+    });
+</script>
+{% endblock %}

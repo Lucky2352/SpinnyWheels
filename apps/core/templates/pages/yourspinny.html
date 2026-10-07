@@ -1,0 +1,564 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}YourSpinny{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-yourspinny-root>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">YourSpinny</h1>
+            <p class="mt-1 text-slate-600">Ask anything about our showroom inventory — budget, brand, seating, fuel, comparisons or what to buy.</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6">
+        <form id="yourspinnyForm" class="space-y-4">
+            <div>
+                <label for="yourspinnyQuery" class="block text-sm font-medium text-slate-700 mb-1.5">What are you looking for?</label>
+                <textarea id="yourspinnyQuery" rows="3" maxlength="2000"
+                    placeholder="e.g. cars under 10 lakh, 5 seater automatic cars, cheapest Honda, compare Honda City and Hyundai Verna, which car should I buy under 15 lakh?"
+                    class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"></textarea>
+            </div>
+
+            <div class="flex flex-wrap gap-2" data-example-chips>
+                <button type="button" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors" data-example="cars under 10 lakh">Cars under 10 lakh</button>
+                <button type="button" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors" data-example="5 seater automatic cars">5 seater automatic</button>
+                <button type="button" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors" data-example="cheapest Honda car">Cheapest Honda</button>
+                <button type="button" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors" data-example="which car should I buy under 15 lakh?">What should I buy?</button>
+                <button type="button" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors" data-example="compare Honda City and Hyundai Verna">Compare two cars</button>
+            </div>
+
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-xs text-slate-500">Every answer is generated from our real showroom inventory. <button type="button" data-clear-context class="underline hover:text-slate-700">Start over</button></p>
+                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-60 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    Ask YourSpinny
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div id="yourspinnyPanel" data-state="empty" class="bg-white rounded-xl border border-slate-200 p-4 sm:p-6">
+        <div data-state="loading" class="hidden py-16 text-center">
+            <div class="inline-flex items-center gap-3 text-slate-600">
+                <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                <span>YourSpinny is reading your request...</span>
+            </div>
+        </div>
+
+        <div data-state="error" class="hidden py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h3 class="mt-4 text-lg font-medium text-slate-900">YourSpinny is temporarily unavailable</h3>
+            <p class="mt-1 text-slate-500" data-error-text>You can still browse vehicles normally.</p>
+            <div class="mt-4 flex items-center justify-center gap-3">
+                <button type="button" data-retry class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Retry</button>
+                <a href="{% url 'vehicles' %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">Browse Vehicles</a>
+            </div>
+        </div>
+
+        <div data-state="empty" class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            <h3 class="mt-4 text-lg font-medium text-slate-900">Ask YourSpinny anything</h3>
+            <p class="mt-1 text-slate-500" data-empty-text>Try "cars under 10 lakh", "petrol cars from 2024", "cheapest automatic car" or "which car should I buy?"</p>
+        </div>
+
+        <div data-state="content">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span data-intent-badge class="hidden rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary-700"></span>
+                    <h2 class="text-lg font-semibold text-slate-900" data-result-title>Results</h2>
+                    <p class="text-sm text-slate-500" data-match-count></p>
+                </div>
+                <div class="flex flex-wrap gap-2" data-requirement-chips></div>
+            </div>
+
+            <div data-answer-wrap class="mb-5 rounded-lg border border-primary-100 bg-primary-50 p-4">
+                <h3 class="text-sm font-semibold text-primary-900">YourSpinny</h3>
+                <div data-answer class="mt-2 text-sm text-slate-700 whitespace-pre-line"></div>
+            </div>
+
+            <div data-recommendation-wrap class="hidden mb-6">
+                <div class="mb-3 flex items-center gap-2">
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">My pick for you</span>
+                    <span class="text-sm text-slate-500">One best match from live inventory</span>
+                </div>
+                <div data-recommendation-slot class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+            </div>
+
+            <div data-results-wrap>
+                <div id="recommendationGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+                <p data-no-results class="hidden text-sm text-slate-500">No vehicles matched every requirement above.</p>
+            </div>
+
+            <div data-closest-wrap class="hidden mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <h3 class="text-sm font-semibold text-amber-800">Closest option above your budget</h3>
+                <p class="mt-1 text-xs text-amber-700">Not an exact match — shown only because nothing fit your budget.</p>
+                <div data-closest-slot class="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+            </div>
+        </div>
+    </div>
+
+    <div data-compare-wrap class="hidden bg-white rounded-xl border border-slate-200 p-4 sm:p-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">Comparison</h2>
+                <p class="text-sm text-slate-500" data-compare-subtitle></p>
+            </div>
+            <button type="button" data-compare-close class="text-sm font-medium text-slate-500 hover:text-slate-700">Clear</button>
+        </div>
+        <div data-compare-winner-wrap class="hidden mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">Recommended winner</span>
+            <p class="mt-2 text-sm font-semibold text-amber-900" data-compare-winner-name></p>
+            <p class="mt-1 text-sm text-amber-800" data-compare-winner-reason></p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm" data-compare-table></table>
+        </div>
+        <div data-compare-analysis-wrap class="hidden mt-4 rounded-lg border border-primary-100 bg-primary-50 p-4">
+            <h3 class="text-sm font-semibold text-primary-900">YourSpinny Analysis</h3>
+            <div data-compare-analysis class="mt-2 text-sm text-slate-700 whitespace-pre-line"></div>
+        </div>
+    </div>
+</div>
+
+<div data-compare-bar class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full bg-slate-900 px-5 py-3 text-white shadow-lg">
+    <span class="text-sm font-medium"><span data-compare-count>0</span> selected</span>
+    <button type="button" data-compare-submit class="rounded-full bg-primary-600 px-4 py-1.5 text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 transition-colors" disabled>Compare</button>
+</div>
+
+<template id="recommendationCardTemplate">
+    <article class="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div class="p-4">
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                    <h3 data-name class="font-semibold text-slate-900 truncate"></h3>
+                    <p data-variant class="text-sm text-slate-500 truncate"></p>
+                </div>
+                <span data-price class="text-lg font-bold text-slate-900 whitespace-nowrap"></span>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-1.5">
+                <span data-year class="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600"></span>
+                <span data-fuel class="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600"></span>
+                <span data-transmission class="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600"></span>
+                <span data-seats class="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-600"></span>
+            </div>
+
+            <div data-score-wrap class="mt-3">
+                <div class="flex justify-between text-xs text-slate-500">
+                    <span>Match score</span>
+                    <span data-score-label></span>
+                </div>
+                <div class="mt-1 h-1.5 w-full rounded-full bg-slate-100">
+                    <div data-score-bar class="h-1.5 rounded-full bg-primary-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <ul data-reasons class="mt-3 space-y-1 text-xs text-slate-600"></ul>
+
+            <div class="mt-4 flex items-center justify-between gap-2">
+                <span data-dealership class="text-xs text-slate-500 truncate"></span>
+                <label class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <input type="checkbox" data-compare-toggle class="rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                    Compare
+                </label>
+            </div>
+
+            <a data-detail-link class="mt-4 block w-full rounded-lg bg-primary-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+                View Details
+            </a>
+        </div>
+    </article>
+</template>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+        const root = document.querySelector('[data-yourspinny-root]');
+        const form = document.getElementById('yourspinnyForm');
+        const queryInput = document.getElementById('yourspinnyQuery');
+        const panel = document.getElementById('yourspinnyPanel');
+        const grid = document.getElementById('recommendationGrid');
+        const cardTemplate = document.getElementById('recommendationCardTemplate');
+        const matchCount = document.querySelector('[data-match-count]');
+        const requirementChips = document.querySelector('[data-requirement-chips]');
+        const answerWrap = document.querySelector('[data-answer-wrap]');
+        const answerEl = document.querySelector('[data-answer]');
+        const intentBadge = document.querySelector('[data-intent-badge]');
+        const resultTitle = document.querySelector('[data-result-title]');
+        const recommendationWrap = document.querySelector('[data-recommendation-wrap]');
+        const recommendationSlot = document.querySelector('[data-recommendation-slot]');
+        const resultsWrap = document.querySelector('[data-results-wrap]');
+        const noResults = document.querySelector('[data-no-results]');
+        const closestWrap = document.querySelector('[data-closest-wrap]');
+        const closestSlot = document.querySelector('[data-closest-slot]');
+        const compareBar = document.querySelector('[data-compare-bar]');
+        const compareCount = document.querySelector('[data-compare-count]');
+        const compareSubmit = document.querySelector('[data-compare-submit]');
+        const compareWrap = document.querySelector('[data-compare-wrap]');
+        const compareSubtitle = document.querySelector('[data-compare-subtitle]');
+        const compareTable = document.querySelector('[data-compare-table]');
+        const compareAnalysisWrap = document.querySelector('[data-compare-analysis-wrap]');
+        const compareAnalysis = document.querySelector('[data-compare-analysis]');
+        const compareWinnerWrap = document.querySelector('[data-compare-winner-wrap]');
+        const compareWinnerName = document.querySelector('[data-compare-winner-name]');
+        const compareWinnerReason = document.querySelector('[data-compare-winner-reason]');
+        const compareClose = document.querySelector('[data-compare-close]');
+        const retryButton = document.querySelector('[data-retry]');
+        const clearContextButton = document.querySelector('[data-clear-context]');
+
+        const selected = new Map();
+        let requestInFlight = false;
+        let lastQuery = '';
+        // Previous-turn filters sent with every request so follow-ups like
+        // "only automatic" narrow the previous result set.
+        let contextFilters = {};
+
+        const INTENT_LABELS = {
+            SEARCH: 'Search results',
+            RECOMMENDATION: 'Recommendation',
+            COMPARISON: 'Comparison',
+            INFO: 'Vehicle info',
+        };
+
+        function filterChips(filters) {
+            const labels = [];
+            if (filters.price_min != null && filters.price_max != null) {
+                labels.push(`${ui.formatMoney(filters.price_min)} – ${ui.formatMoney(filters.price_max)}`);
+            } else if (filters.price_max != null) {
+                labels.push(`Under ${ui.formatMoney(filters.price_max)}`);
+            } else if (filters.price_min != null) {
+                labels.push(`Above ${ui.formatMoney(filters.price_min)}`);
+            }
+            if (filters.brand) labels.push(filters.model ? `${filters.brand} ${filters.model}` : filters.brand);
+            else if (filters.model) labels.push(filters.model);
+            if (filters.variant) labels.push(filters.variant);
+            if (filters.manufacturing_year != null) labels.push(`Year ${filters.manufacturing_year}`);
+            else if (filters.year_min != null && filters.year_max != null) labels.push(`${filters.year_min} – ${filters.year_max}`);
+            else if (filters.year_min != null) labels.push(`${filters.year_min}+`);
+            else if (filters.year_max != null) labels.push(`up to ${filters.year_max}`);
+            if (filters.fuel_type) labels.push(filters.fuel_type);
+            if (filters.transmission) labels.push(filters.transmission);
+            else if (filters.transmission_group === 'AUTOMATIC') labels.push('Automatic');
+            else if (filters.transmission_group === 'MANUAL') labels.push('Manual');
+            if (filters.seating_capacity != null) labels.push(`${filters.seating_capacity} seats`);
+            return labels;
+        }
+
+        function renderChips(filters) {
+            requirementChips.innerHTML = '';
+            filterChips(filters || {}).forEach((text) => {
+                const chip = document.createElement('span');
+                chip.className = 'rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600';
+                chip.textContent = text;
+                requirementChips.appendChild(chip);
+            });
+        }
+
+        function syncCompareBar() {
+            const count = selected.size;
+            compareCount.textContent = String(count);
+            compareBar.classList.toggle('hidden', count === 0);
+            compareSubmit.disabled = count < 2 || count > 3;
+            grid.querySelectorAll('[data-compare-toggle]').forEach((checkbox) => {
+                if (!checkbox.checked) checkbox.disabled = count >= 3;
+            });
+        }
+
+        function buildCard(vehicle) {
+            const card = cardTemplate.content.firstElementChild.cloneNode(true);
+            card.querySelector('[data-name]').textContent = [vehicle.brand, vehicle.model]
+                .filter(Boolean)
+                .join(' ');
+
+            const variantEl = card.querySelector('[data-variant]');
+            if (vehicle.variant) {
+                variantEl.textContent = vehicle.variant;
+            } else {
+                variantEl.remove();
+            }
+
+            card.querySelector('[data-price]').textContent = ui.formatMoney(vehicle.price);
+            card.querySelector('[data-year]').textContent = vehicle.manufacturing_year;
+            card.querySelector('[data-fuel]').textContent = vehicle.fuel_type;
+            card.querySelector('[data-transmission]').textContent = vehicle.transmission;
+            card.querySelector('[data-seats]').textContent = `${vehicle.seating_capacity} seats`;
+            card.querySelector('[data-dealership]').textContent =
+                vehicle.dealership_name || `Dealership ${vehicle.dealership}`;
+
+            const score = Number(vehicle.match_score) || 0;
+            const scorePercent = Math.max(0, Math.min(100, Math.round(score * 100)));
+            card.querySelector('[data-score-label]').textContent = `${scorePercent}% match`;
+            card.querySelector('[data-score-bar]').style.width = `${scorePercent}%`;
+
+            const reasons = card.querySelector('[data-reasons]');
+            (vehicle.match_reasons || []).forEach((reason) => {
+                const item = document.createElement('li');
+                item.className = 'flex items-start gap-1.5';
+                item.innerHTML = `<svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span></span>`;
+                item.querySelector('span').textContent = reason;
+                reasons.appendChild(item);
+            });
+
+            const toggle = card.querySelector('[data-compare-toggle]');
+            toggle.checked = selected.has(vehicle.id);
+            toggle.addEventListener('change', function() {
+                if (toggle.checked) {
+                    if (selected.size >= 3) {
+                        toggle.checked = false;
+                        ui.showToast('You can compare up to 3 vehicles.', 'info');
+                        return;
+                    }
+                    selected.set(vehicle.id, vehicle);
+                } else {
+                    selected.delete(vehicle.id);
+                }
+                syncCompareBar();
+            });
+
+            card.querySelector('[data-detail-link]').href = `/vehicles/${vehicle.id}/`;
+            return card;
+        }
+
+        function renderComparison(vehicles, analysis, winner, subtitle) {
+            if (!Array.isArray(vehicles) || vehicles.length === 0) return;
+
+            const rows = [
+                ['Price', (v) => ui.formatMoney(v.price)],
+                ['Fuel', (v) => v.fuel_type || 'Not available'],
+                ['Transmission', (v) => v.transmission || 'Not available'],
+                ['Seats', (v) => `${v.seating_capacity}`],
+                ['Year', (v) => `${v.manufacturing_year}`],
+                ['Variant', (v) => v.variant || 'Not available'],
+                ['Dealership', (v) => v.dealership_name || `Dealership ${v.dealership}`],
+            ];
+
+            const thead = document.createElement('thead');
+            const headRow = document.createElement('tr');
+            const corner = document.createElement('th');
+            corner.className = 'sticky left-0 bg-white px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-400';
+            headRow.appendChild(corner);
+            vehicles.forEach((vehicle) => {
+                const th = document.createElement('th');
+                th.className = 'px-3 py-2 text-left text-sm font-semibold text-slate-900 whitespace-nowrap';
+                th.textContent = [vehicle.brand, vehicle.model].filter(Boolean).join(' ');
+                headRow.appendChild(th);
+            });
+            thead.appendChild(headRow);
+            compareTable.innerHTML = '';
+            compareTable.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            rows.forEach(([label, accessor]) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-t border-slate-100';
+                const th = document.createElement('th');
+                th.className = 'sticky left-0 bg-white px-3 py-2 text-left text-xs font-medium text-slate-500 whitespace-nowrap';
+                th.textContent = label;
+                tr.appendChild(th);
+                vehicles.forEach((vehicle) => {
+                    const td = document.createElement('td');
+                    td.className = 'px-3 py-2 text-sm text-slate-700 whitespace-nowrap';
+                    td.textContent = accessor(vehicle);
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            compareTable.appendChild(tbody);
+
+            compareSubtitle.textContent = subtitle || `Comparing ${vehicles.length} vehicles`;
+
+            if (winner) {
+                compareWinnerName.textContent = winner.name;
+                compareWinnerReason.textContent = winner.reason || '';
+                compareWinnerWrap.classList.remove('hidden');
+            } else {
+                compareWinnerWrap.classList.add('hidden');
+            }
+
+            if (analysis) {
+                compareAnalysis.textContent = analysis;
+                compareAnalysisWrap.classList.remove('hidden');
+            } else {
+                compareAnalysisWrap.classList.add('hidden');
+            }
+            compareWrap.classList.remove('hidden');
+            compareWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderResult(result) {
+            grid.innerHTML = '';
+            recommendationSlot.innerHTML = '';
+            closestSlot.innerHTML = '';
+            compareWrap.classList.add('hidden');
+
+            answerEl.textContent = result.answer || '';
+            answerWrap.classList.toggle('hidden', !result.answer);
+
+            const label = INTENT_LABELS[result.intent];
+            if (label) {
+                intentBadge.textContent = label;
+                intentBadge.classList.remove('hidden');
+                resultTitle.textContent = label;
+            } else {
+                intentBadge.classList.add('hidden');
+                resultTitle.textContent = 'YourSpinny';
+            }
+
+            renderChips(result.filters);
+            contextFilters = result.filters || {};
+
+            const results = Array.isArray(result.results) ? result.results : [];
+
+            if (result.intent === 'RECOMMENDATION' && result.recommendation) {
+                recommendationWrap.classList.remove('hidden');
+                resultsWrap.classList.add('hidden');
+                recommendationSlot.appendChild(buildCard(result.recommendation));
+                matchCount.textContent = result.total_matches > 1
+                    ? `picked from ${result.total_matches} matching cars`
+                    : '1 matching car';
+            } else if (result.intent === 'COMPARISON' && result.comparison) {
+                recommendationWrap.classList.add('hidden');
+                resultsWrap.classList.add('hidden');
+                matchCount.textContent = '';
+                renderComparison(
+                    result.comparison.vehicles,
+                    result.comparison.analysis,
+                    result.comparison.winner,
+                    `Comparing ${result.comparison.vehicles.length} vehicles from live inventory`
+                );
+            } else {
+                recommendationWrap.classList.add('hidden');
+                resultsWrap.classList.remove('hidden');
+                const fragment = document.createDocumentFragment();
+                results.forEach((vehicle) => fragment.appendChild(buildCard(vehicle)));
+                grid.appendChild(fragment);
+
+                if (results.length === 0) {
+                    noResults.classList.remove('hidden');
+                    matchCount.textContent = result.no_match ? 'no exact matches' : 'no results';
+                } else {
+                    noResults.classList.add('hidden');
+                    matchCount.textContent = result.total_matches === 1
+                        ? '1 matching car in our showroom'
+                        : `${result.total_matches} matching cars in our showroom`;
+                }
+            }
+
+            if (result.closest_above) {
+                closestWrap.classList.remove('hidden');
+                closestSlot.appendChild(buildCard(result.closest_above));
+            } else {
+                closestWrap.classList.add('hidden');
+            }
+
+            selected.clear();
+            syncCompareBar();
+            ui.setContainerState(panel, 'content');
+        }
+
+        async function submitQuery(event) {
+            if (event) event.preventDefault();
+            if (requestInFlight) return;
+
+            const query = queryInput.value.trim();
+            if (!query) {
+                ui.showFormError(form, 'Please describe what you are looking for.');
+                return;
+            }
+
+            lastQuery = query;
+            requestInFlight = true;
+            ui.clearFormError(form);
+            ui.setSubmitting(form, true, 'Searching...');
+            ui.setContainerState(panel, 'loading');
+            compareWrap.classList.add('hidden');
+
+            try {
+                const result = await api.yourspinny.ask({
+                    query,
+                    context_filters: contextFilters,
+                });
+                renderResult(result);
+            } catch (err) {
+                if (err.status === 401) return;
+                grid.innerHTML = '';
+                recommendationSlot.innerHTML = '';
+                matchCount.textContent = '';
+                requirementChips.innerHTML = '';
+                if (err.status === 403) {
+                    ui.setContainerState(panel, 'error', {
+                        errorText: 'YourSpinny is available to customers only.',
+                    });
+                } else {
+                    ui.setContainerState(panel, 'error', { errorText: ui.errorMessageFor(err) });
+                }
+            } finally {
+                requestInFlight = false;
+                ui.setSubmitting(form, false);
+            }
+        }
+
+        async function submitComparison() {
+            if (selected.size < 2) return;
+            const ids = [...selected.keys()].slice(0, 3);
+            compareSubmit.disabled = true;
+
+            try {
+                const result = await api.yourspinny.compare({ vehicle_ids: ids });
+                renderComparison(result.vehicles, result.comparison, null, null);
+            } catch (err) {
+                if (err.status === 401) return;
+                if (err.status === 404) {
+                    ui.showToast('One of the selected vehicles is no longer available.', 'error');
+                } else if (err.status === 403) {
+                    ui.showToast('YourSpinny is available to customers only.', 'error');
+                } else {
+                    ui.showToast(ui.errorMessageFor(err), 'error');
+                }
+            } finally {
+                syncCompareBar();
+            }
+        }
+
+        function clearComparison() {
+            selected.clear();
+            grid.querySelectorAll('[data-compare-toggle]').forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+            compareWrap.classList.add('hidden');
+            syncCompareBar();
+        }
+
+        form.addEventListener('submit', submitQuery);
+        compareSubmit.addEventListener('click', submitComparison);
+        compareClose.addEventListener('click', clearComparison);
+        retryButton.addEventListener('click', function() {
+            if (lastQuery) submitQuery();
+        });
+        clearContextButton.addEventListener('click', function() {
+            contextFilters = {};
+            queryInput.value = '';
+            queryInput.focus();
+            ui.setContainerState(panel, 'empty');
+            ui.showToast('Started a new conversation.', 'info');
+        });
+
+        document.querySelector('[data-example-chips]').addEventListener('click', function(event) {
+            const chip = event.target.closest('[data-example]');
+            if (!chip) return;
+            queryInput.value = chip.dataset.example;
+            queryInput.focus();
+        });
+
+        queryInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                form.requestSubmit();
+            }
+        });
+    })();
+</script>
+{% endblock %}

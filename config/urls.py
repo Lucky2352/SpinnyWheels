@@ -1,0 +1,39 @@
+from django.contrib import admin
+from django.urls import include, path
+from apps.core.views.frontend import (
+    IndexView,
+    LoginView,
+    RegisterView,
+    DashboardView,
+    MyVehiclesView,
+    VehiclesView,
+    VehicleDetailView,
+    AppointmentsView,
+    ServiceRequestsView,
+    InventoryView,
+    EmployeesView,
+    TechniciansView,
+    WorkQueueView,
+    MyWorkView,
+    YourSpinnyView,
+)
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api/", include("apps.core.urls")),
+    path("", IndexView.as_view(), name="index"),
+    path("login/", LoginView.as_view(), name="login"),
+    path("register/", RegisterView.as_view(), name="register"),
+    path("dashboard/", DashboardView.as_view(), name="dashboard"),
+    path("my-vehicles/", MyVehiclesView.as_view(), name="my_vehicles"),
+    path("vehicles/", VehiclesView.as_view(), name="vehicles"),
+    path("vehicles/<int:pk>/", VehicleDetailView.as_view(), name="vehicle_details"),
+    path("appointments/", AppointmentsView.as_view(), name="appointments"),
+    path("service-requests/", ServiceRequestsView.as_view(), name="service_requests"),
+    path("inventory/", InventoryView.as_view(), name="inventory"),
+    path("employees/", EmployeesView.as_view(), name="employees"),
+    path("technicians/", TechniciansView.as_view(), name="technicians"),
+    path("work-queue/", WorkQueueView.as_view(), name="work_queue"),
+    path("my-work/", MyWorkView.as_view(), name="my_work"),
+    path("yourspinny/", YourSpinnyView.as_view(), name="yourspinny"),
+]

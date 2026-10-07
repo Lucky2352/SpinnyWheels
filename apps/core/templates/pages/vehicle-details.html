@@ -1,0 +1,343 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}Vehicle Details{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-vehicle-detail-root data-vehicle-id="{{ vehicle_id }}">
+    <nav class="flex items-center gap-2 text-sm text-slate-500" aria-label="Breadcrumb">
+        <a href="{% url 'dashboard' %}" class="hover:text-slate-700">Dashboard</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <a href="{% url 'vehicles' %}" class="hover:text-slate-700">Vehicles</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <span data-breadcrumb class="text-slate-900 truncate max-w-[200px]">Vehicle</span>
+    </nav>
+
+    <div id="vehicleDetailPanel" data-state="loading">
+        <div data-state="loading" class="py-16 text-center">
+            <div class="inline-flex items-center gap-3 text-slate-600">
+                <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                <span>Loading vehicle...</span>
+            </div>
+        </div>
+
+        <div data-state="error" class="hidden py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h3 class="mt-4 text-lg font-medium text-slate-900">Could not load this vehicle</h3>
+            <p class="mt-1 text-slate-500" data-error-text></p>
+            <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+        </div>
+
+        <div data-state="empty" class="hidden py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+            <h3 class="mt-4 text-lg font-medium text-slate-900">Vehicle unavailable</h3>
+            <p class="mt-1 text-slate-500" data-empty-text>This vehicle is no longer listed in available inventory.</p>
+            <a href="{% url 'vehicles' %}" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Browse available vehicles</a>
+        </div>
+
+        <div data-state="content" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div class="aspect-video bg-slate-100 relative">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <svg class="w-24 h-24 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+                            </div>
+                            <div data-unavailable class="hidden absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span class="px-4 py-2 text-lg font-medium text-white bg-red-600 rounded">Unavailable</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <section class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6" aria-labelledby="overview-heading">
+                        <h2 id="overview-heading" class="text-lg font-semibold text-slate-900 mb-4">Overview</h2>
+                        <p data-description class="text-slate-600"></p>
+                    </section>
+
+                    <section class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6" aria-labelledby="specs-heading">
+                        <h2 id="specs-heading" class="text-lg font-semibold text-slate-900 mb-4">Specifications</h2>
+                        <dl class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                            <div>
+                                <dt class="text-sm text-slate-500">Engine</dt>
+                                <dd data-fuel class="mt-1 font-medium text-slate-900"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm text-slate-500">Transmission</dt>
+                                <dd data-transmission class="mt-1 font-medium text-slate-900"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm text-slate-500">Seating</dt>
+                                <dd data-seats class="mt-1 font-medium text-slate-900"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm text-slate-500">Model Year</dt>
+                                <dd data-year class="mt-1 font-medium text-slate-900"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm text-slate-500">Brand</dt>
+                                <dd data-brand class="mt-1 font-medium text-slate-900"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm text-slate-500">Stock</dt>
+                                <dd data-stock class="mt-1 font-medium text-slate-900"></dd>
+                            </div>
+                        </dl>
+                    </section>
+                </div>
+
+                <div class="space-y-6">
+                    <aside class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 sticky top-24" aria-labelledby="purchase-heading">
+                        <h2 id="purchase-heading" class="text-lg font-semibold text-slate-900 mb-4">Price &amp; Availability</h2>
+
+                        <div class="mb-6">
+                            <span class="text-sm text-slate-500">Price</span>
+                            <p data-price class="text-3xl font-bold text-slate-900"></p>
+                            <p class="text-sm text-slate-500 mt-1">Price before taxes and fees</p>
+                        </div>
+
+                        <div data-availability class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200">
+                            <div class="flex items-center gap-3">
+                                <div data-availability-icon class="w-8 h-8 rounded-full flex items-center justify-center bg-green-100">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <div>
+                                    <p data-availability-label class="font-medium text-green-800"></p>
+                                    <p data-availability-note class="text-sm text-green-700"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" data-modal-toggle="testDriveModal" data-book-test-drive class="w-full rounded-lg bg-primary-600 px-4 py-3 text-base font-semibold text-white hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Book Test Drive
+                        </button>
+
+                        <div class="mt-6 pt-6 border-t border-slate-200 space-y-3">
+                            <a href="{% url 'appointments' %}" class="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium">View my appointments</a>
+                            <a href="{% url 'service_requests' %}" class="block text-center text-sm text-primary-600 hover:text-primary-700 font-medium">Request service</a>
+                        </div>
+                    </aside>
+
+                    <aside class="bg-white rounded-xl border border-slate-200 p-5 sm:p-6" aria-labelledby="dealer-heading">
+                        <h2 id="dealer-heading" class="text-lg font-semibold text-slate-900 mb-4">Dealership</h2>
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p data-dealership class="font-medium text-slate-900"></p>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="testDriveModal" class="modal hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="testDriveModalTitle" role="dialog" aria-modal="true">
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50" data-modal-close></div>
+            <div class="relative w-full max-w-lg bg-white rounded-xl shadow-xl p-6" data-modal>
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="testDriveModalTitle" class="text-xl font-semibold text-slate-900">Book Test Drive</h2>
+                    <button type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" data-modal-close aria-label="Close modal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <form id="testDriveForm" class="space-y-5" novalidate>
+                    <p class="text-sm text-slate-600">
+                        <span class="font-medium text-slate-900" data-modal-vehicle></span>
+                        at <span class="font-medium text-slate-900" data-modal-dealership></span>
+                    </p>
+                    <div>
+                        <label for="tdDate" class="block text-sm font-medium text-slate-700 mb-1.5">Preferred date <span class="text-red-500">*</span></label>
+                        <input type="date" id="tdDate" name="scheduled_date" required
+                            class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="tdTime" class="block text-sm font-medium text-slate-700 mb-1.5">Preferred time <span class="text-red-500">*</span></label>
+                        <input type="time" id="tdTime" name="scheduled_time" required
+                            class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    </div>
+                    <div>
+                        <label for="tdNotes" class="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>
+                        <textarea id="tdNotes" name="notes" rows="3"
+                            class="appearance-none block w-full px-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                            placeholder="Anything we should know before your visit?"></textarea>
+                    </div>
+                    <div class="flex gap-3 pt-4 border-t border-slate-200">
+                        <button type="button" class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors" data-modal-close>Cancel</button>
+                        <button type="submit" class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Confirm Booking</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const root = document.querySelector('[data-vehicle-detail-root]');
+        const vehicleId = Number(root.dataset.vehicleId);
+        const panel = document.getElementById('vehicleDetailPanel');
+        const breadcrumb = document.querySelector('[data-breadcrumb]');
+        const retryBtn = document.querySelector('[data-retry]');
+        const bookBtn = document.querySelector('[data-book-test-drive]');
+        const form = document.getElementById('testDriveForm');
+        const modal = document.getElementById('testDriveModal');
+
+        let vehicle = null;
+        let requestInFlight = false;
+        let submitting = false;
+
+        function fill(el, value) {
+            if (el) el.textContent = value;
+        }
+
+        function renderVehicle() {
+            const name = [vehicle.brand, vehicle.model].filter(Boolean).join(' ');
+            fill(breadcrumb, name);
+            document.title = `${name} - spinnyWheels`;
+            fill(document.querySelector('[data-modal-vehicle]'), name);
+            fill(document.querySelector('[data-modal-dealership]'), vehicle.dealership_name || '');
+
+            fill(document.querySelector('[data-price]'), ui.formatMoney(vehicle.price));
+            fill(document.querySelector('[data-brand]'), vehicle.brand);
+            fill(document.querySelector('[data-year]'), vehicle.manufacturing_year);
+            fill(document.querySelector('[data-fuel]'), `${vehicle.fuel_type}`);
+            fill(document.querySelector('[data-transmission]'), vehicle.transmission);
+            fill(document.querySelector('[data-seats]'), `${vehicle.seating_capacity} passengers`);
+            fill(document.querySelector('[data-stock]'), `${vehicle.stock_quantity}`);
+            fill(document.querySelector('[data-dealership]'), vehicle.dealership_name || `Dealership ${vehicle.dealership}`);
+
+            const description = document.querySelector('[data-description]');
+            if (description) {
+                description.textContent = vehicle.description
+                    || `${name} is a ${vehicle.manufacturing_year} ${vehicle.brand} ${vehicle.model} with a ${vehicle.fuel_type} engine and ${vehicle.transmission} transmission.`;
+            }
+
+            const available = Boolean(vehicle.is_in_stock);
+            const banner = document.querySelector('[data-availability]');
+            const icon = document.querySelector('[data-availability-icon]');
+            const label = document.querySelector('[data-availability-label]');
+            const note = document.querySelector('[data-availability-note]');
+
+            banner.classList.toggle('bg-green-50', available);
+            banner.classList.toggle('border-green-200', available);
+            banner.classList.toggle('bg-red-50', !available);
+            banner.classList.toggle('border-red-200', !available);
+
+            icon.classList.toggle('bg-green-100', available);
+            icon.classList.toggle('bg-red-100', !available);
+            icon.innerHTML = available
+                ? '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'
+                : '<svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+
+            label.textContent = available ? 'Available Now' : 'Currently Unavailable';
+            label.classList.toggle('text-green-800', available);
+            label.classList.toggle('text-red-800', !available);
+            note.textContent = available
+                ? `In stock at ${vehicle.dealership_name || 'our dealership'}`
+                : 'Check back later or contact the dealer';
+            note.classList.toggle('text-green-700', available);
+            note.classList.toggle('text-red-700', !available);
+
+            if (!available) {
+                document.querySelector('[data-unavailable]').classList.remove('hidden');
+            }
+
+            bookBtn.disabled = !available;
+            ui.setContainerState(panel, 'content');
+        }
+
+        async function loadVehicle() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(panel, 'loading');
+
+            try {
+                const vehicles = await api.vehicles.available();
+                const list = Array.isArray(vehicles) ? vehicles : [];
+                const match = list.find(item => item.id === vehicleId);
+
+                if (!match) {
+                    vehicle = null;
+                    ui.setContainerState(panel, 'empty');
+                    return;
+                }
+
+                vehicle = match;
+                renderVehicle();
+            } catch (err) {
+                if (err.status === 401) return;
+                ui.setContainerState(panel, 'error', { errorText: ui.errorMessageFor(err) });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        function validateForm() {
+            const dateInput = document.getElementById('tdDate');
+            const timeInput = document.getElementById('tdTime');
+
+            if (!dateInput.value) {
+                ui.showFormError(form, 'Please choose a preferred date.');
+                return false;
+            }
+            if (dateInput.value < ui.todayIso()) {
+                ui.showFormError(form, 'Please choose a date that is not in the past.');
+                return false;
+            }
+            if (!timeInput.value) {
+                ui.showFormError(form, 'Please choose a preferred time.');
+                return false;
+            }
+
+            ui.clearFormError(form);
+            return true;
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!vehicle || submitting) return;
+            if (!validateForm()) return;
+
+            submitting = true;
+            ui.setSubmitting(form, true, 'Booking...');
+
+            try {
+                await api.appointments.createTestDrive({
+                    dealership_id: vehicle.dealership,
+                    vehicle_id: vehicle.id,
+                    scheduled_date: document.getElementById('tdDate').value,
+                    scheduled_time: document.getElementById('tdTime').value,
+                    notes: document.getElementById('tdNotes').value.trim(),
+                });
+
+                ui.closeModal(modal);
+                form.reset();
+                ui.clearFormError(form);
+                ui.showToast('Test drive booked successfully.');
+            } catch (err) {
+                if (err.status === 401) return;
+                const fieldErrors = err.errors ? Object.values(err.errors).join(' ') : null;
+                ui.showFormError(form, fieldErrors || ui.errorMessageFor(err));
+            } finally {
+                submitting = false;
+                ui.setSubmitting(form, false);
+            }
+        });
+
+        retryBtn.addEventListener('click', loadVehicle);
+
+        document.getElementById('tdDate').min = ui.todayIso();
+
+        loadVehicle();
+    })();
+</script>
+{% endblock %}

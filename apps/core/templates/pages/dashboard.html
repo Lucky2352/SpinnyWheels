@@ -1,0 +1,380 @@
+{% extends "base/layout.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6" data-dashboard-root>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Welcome back, <span data-user-email class="align-middle text-xl font-semibold text-slate-700"></span></h1>
+            <p class="mt-1 text-slate-600">Here's what's happening with your vehicles and services</p>
+        </div>
+        <div class="flex flex-wrap gap-3" data-customer-only>
+            <a href="{% url 'vehicles' %}" class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Browse Vehicles
+            </a>
+            <a href="{% url 'appointments' %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Book Test Drive
+            </a>
+            <a href="{% url 'service_requests' %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Request Service
+            </a>
+        </div>
+    </div>
+
+    <div id="summaryPanel" data-state="loading">
+        <div data-state="loading" class="hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="h-28 rounded-xl border border-slate-200 bg-white animate-pulse"></div>
+                <div class="h-28 rounded-xl border border-slate-200 bg-white animate-pulse"></div>
+                <div class="h-28 rounded-xl border border-slate-200 bg-white animate-pulse"></div>
+                <div class="h-28 rounded-xl border border-slate-200 bg-white animate-pulse"></div>
+            </div>
+        </div>
+
+        <div data-state="error" class="hidden rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+            <h3 class="text-lg font-medium text-red-900">Could not load your dashboard</h3>
+            <p class="mt-1 text-sm text-red-700" data-error-text></p>
+            <button type="button" data-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors">Try again</button>
+        </div>
+
+        <div data-state="content" class="hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <article class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600" data-card-label="upcoming">Upcoming Appointments</p>
+                            <p class="mt-1 text-2xl font-bold text-slate-900" data-count-upcoming>0</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                    </div>
+                    <a href="{% url 'appointments' %}" data-card-link="upcoming" data-card-action="upcoming" class="mt-4 block text-sm font-medium text-primary-600 hover:text-primary-700">View all</a>
+                </article>
+
+                <article class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600" data-card-label="active">Active Service Requests</p>
+                            <p class="mt-1 text-2xl font-bold text-slate-900" data-count-active>0</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </div>
+                    </div>
+                    <a href="{% url 'service_requests' %}" data-card-link="active" data-card-action="active" class="mt-4 block text-sm font-medium text-primary-600 hover:text-primary-700">View all</a>
+                </article>
+
+                <article class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600" data-card-label="vehicles">My Vehicles</p>
+                            <p class="mt-1 text-2xl font-bold text-slate-900" data-count-vehicles>0</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2"/></svg>
+                        </div>
+                    </div>
+                    <a href="{% url 'service_requests' %}" data-card-link="vehicles" data-card-action="vehicles" class="mt-4 block text-sm font-medium text-primary-600 hover:text-primary-700">Request service</a>
+                </article>
+
+                <article class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600" data-card-label="completed">Completed Services</p>
+                            <p class="mt-1 text-2xl font-bold text-slate-900" data-count-completed>0</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                    </div>
+                    <a href="{% url 'service_requests' %}" data-card-link="completed" data-card-action="completed" class="mt-4 block text-sm font-medium text-primary-600 hover:text-primary-700">View history</a>
+                </article>
+            </div>
+        </div>
+    </div>
+
+    <section class="bg-white rounded-xl border border-slate-200 overflow-hidden" aria-labelledby="recent-activity-heading">
+        <div class="px-5 py-4 border-b border-slate-200">
+            <h2 id="recent-activity-heading" class="text-lg font-semibold text-slate-900">Recent Activity</h2>
+        </div>
+        <div id="activityPanel" data-state="loading">
+            <div data-state="loading" class="hidden py-12 text-center">
+                <div class="inline-flex items-center gap-3 text-slate-600">
+                    <svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span>Loading activity...</span>
+                </div>
+            </div>
+            <div data-state="error" class="hidden py-12 text-center">
+                <p class="text-slate-500" data-error-text></p>
+            </div>
+            <div data-state="empty" class="hidden py-12 text-center">
+                <svg class="mx-auto h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <p class="mt-3 text-slate-500" data-empty-text>No activity yet. Your bookings and service requests will appear here.</p>
+            </div>
+            <div data-state="content">
+                <div class="divide-y divide-slate-200" data-activity-list></div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-200">
+            <a href="{% url 'appointments' %}" class="text-sm font-medium text-primary-600 hover:text-primary-700">View appointments</a>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function() {
+        const ui = window.AutoFlowUI;
+        const api = window.AutoFlowAPI;
+
+        const summaryPanel = document.getElementById('summaryPanel');
+        const activityPanel = document.getElementById('activityPanel');
+        const activityList = document.querySelector('[data-activity-list]');
+        const retryBtn = document.querySelector('[data-retry]');
+
+        const ACTIVE_APPOINTMENT_STATUSES = ['PENDING', 'CONFIRMED', 'IN_PROGRESS'];
+        const CLOSED_REQUEST_STATUSES = ['COMPLETED', 'CANCELLED'];
+
+        const CARDS = {
+            customer: {
+                upcoming: { label: 'Upcoming Appointments', action: 'View all', href: '/appointments/' },
+                active: { label: 'Active Service Requests', action: 'View all', href: '/service-requests/' },
+                vehicles: { label: 'My Vehicles', action: 'Request service', href: '/service-requests/' },
+                completed: { label: 'Completed Services', action: 'View history', href: '/service-requests/' },
+            },
+            dealership: {
+                upcoming: { label: 'Upcoming Appointments', action: 'View all', href: '/appointments/' },
+                active: { label: 'Upcoming Test Drives', action: 'View all', href: '/appointments/' },
+                vehicles: { label: 'Showroom Vehicles', action: 'View inventory', href: '/vehicles/' },
+                completed: { label: 'In Stock', action: 'Browse vehicles', href: '/vehicles/' },
+            },
+        };
+
+        const EMPTY_TEXT = {
+            customer: 'No activity yet. Your bookings and service requests will appear here.',
+            dealership: 'No dealership activity yet. New bookings will appear here.',
+        };
+
+        let appointments = [];
+        let requests = [];
+        let vehicles = [];
+        let requestInFlight = false;
+        let user = null;
+
+        function countUpcomingAppointments() {
+            const today = ui.todayIso();
+            return appointments.filter(item =>
+                item.scheduled_date >= today && ACTIVE_APPOINTMENT_STATUSES.includes(item.status)
+            ).length;
+        }
+
+        function applyCards(scope) {
+            const config = CARDS[scope];
+
+            Object.entries(config).forEach(([slot, card]) => {
+                const label = document.querySelector(`[data-card-label="${slot}"]`);
+                const action = document.querySelector(`[data-card-action="${slot}"]`);
+                const link = document.querySelector(`[data-card-link="${slot}"]`);
+
+                if (label) label.textContent = card.label;
+                if (action) action.textContent = card.action;
+                if (link) link.href = card.href;
+            });
+
+            if (scope === 'dealership' && user && user.can_manage_inventory) {
+                const link = document.querySelector('[data-card-link="vehicles"]');
+                if (link) link.href = '/inventory/';
+            }
+        }
+
+        function renderCustomerSummary() {
+            document.querySelector('[data-count-upcoming]').textContent = countUpcomingAppointments();
+            document.querySelector('[data-count-active]').textContent =
+                requests.filter(item => !CLOSED_REQUEST_STATUSES.includes(item.status)).length;
+            document.querySelector('[data-count-vehicles]').textContent = vehicles.length;
+            document.querySelector('[data-count-completed]').textContent =
+                requests.filter(item => item.status === 'COMPLETED').length;
+        }
+
+        function renderDealershipSummary(metrics) {
+            document.querySelector('[data-count-upcoming]').textContent = metrics.upcoming_appointments;
+            document.querySelector('[data-count-active]').textContent = metrics.upcoming_test_drives;
+            document.querySelector('[data-count-vehicles]').textContent = metrics.showroom_vehicles;
+            document.querySelector('[data-count-completed]').textContent = metrics.in_stock_vehicles;
+        }
+
+        function vehicleName(detail) {
+            if (!detail || !detail.vehicle) return 'your vehicle';
+            return [detail.vehicle.manufacturing_year, detail.vehicle.brand, detail.vehicle.model]
+                .filter(Boolean)
+                .join(' ');
+        }
+
+        function buildActivityRow(entry) {
+            const article = document.createElement('article');
+            article.className = 'p-4 flex items-center gap-4 hover:bg-slate-50';
+
+            const icon = document.createElement('div');
+            icon.className = `w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${entry.iconClass}`;
+            icon.innerHTML = entry.icon;
+            article.appendChild(icon);
+
+            const body = document.createElement('div');
+            body.className = 'flex-1 min-w-0';
+
+            const title = document.createElement('p');
+            title.className = 'text-sm font-medium text-slate-900 truncate';
+            title.textContent = entry.title;
+            body.appendChild(title);
+
+            const detail = document.createElement('p');
+            detail.className = 'text-sm text-slate-500 truncate';
+            detail.textContent = entry.detail;
+            body.appendChild(detail);
+
+            article.appendChild(body);
+
+            const time = document.createElement('time');
+            time.className = 'text-sm text-slate-500 whitespace-nowrap';
+            time.textContent = ui.formatRelative(entry.timestamp);
+            article.appendChild(time);
+
+            return article;
+        }
+
+        const ICONS = {
+            green: {
+                iconClass: 'bg-green-100',
+                icon: '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+            },
+            blue: {
+                iconClass: 'bg-blue-100',
+                icon: '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
+            },
+            amber: {
+                iconClass: 'bg-amber-100',
+                icon: '<svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>',
+            },
+            slate: {
+                iconClass: 'bg-slate-100',
+                icon: '<svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+            },
+        };
+
+        function buildActivity() {
+            const entries = [];
+
+            appointments.forEach(item => {
+                entries.push({
+                    timestamp: item.created_at,
+                    title: `${item.appointment_type_display || item.appointment_type} booked`,
+                    detail: `${item.dealership_name || `Dealership ${item.dealership}`} - ${ui.formatDate(item.scheduled_date)} at ${item.scheduled_time}`,
+                    tone: item.status === 'COMPLETED' ? 'green' : 'blue',
+                });
+            });
+
+            requests.forEach(item => {
+                entries.push({
+                    timestamp: item.created_at,
+                    title: `${item.service_type_display || item.service_type} request ${item.status_display ? item.status_display.toLowerCase() : ''}`.trim(),
+                    detail: `${vehicleName(item.customer_vehicle_detail)} - ${item.problem_description}`,
+                    tone: item.status === 'COMPLETED' ? 'green'
+                        : item.status === 'CANCELLED' ? 'slate'
+                        : 'amber',
+                });
+            });
+
+            return entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 8);
+        }
+
+        function renderActivity(scope) {
+            const entries = buildActivity();
+            activityList.innerHTML = '';
+
+            if (!entries.length) {
+                ui.setContainerState(activityPanel, 'empty', { emptyText: EMPTY_TEXT[scope] });
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            entries.forEach(entry => {
+                const tone = ICONS[entry.tone] || ICONS.slate;
+                fragment.appendChild(buildActivityRow({ ...entry, ...tone }));
+            });
+            activityList.appendChild(fragment);
+            ui.setContainerState(activityPanel, 'content');
+        }
+
+        async function loadCustomerDashboard() {
+            const [appointmentData, requestData, vehicleData] = await Promise.all([
+                api.appointments.list(),
+                api.serviceRequests.list(),
+                api.customerVehicles.list(),
+            ]);
+
+            appointments = Array.isArray(appointmentData) ? appointmentData : [];
+            requests = Array.isArray(requestData) ? requestData : [];
+            vehicles = Array.isArray(vehicleData) ? vehicleData : [];
+
+            applyCards('customer');
+            renderCustomerSummary();
+            ui.setContainerState(summaryPanel, 'content');
+            renderActivity('customer');
+        }
+
+        async function loadDealershipDashboard() {
+            const data = await api.dashboard();
+
+            appointments = Array.isArray(data.recent_appointments) ? data.recent_appointments : [];
+            requests = [];
+            vehicles = [];
+
+            applyCards('dealership');
+            renderDealershipSummary(data.metrics || {});
+            ui.setContainerState(summaryPanel, 'content');
+            renderActivity('dealership');
+        }
+
+        async function loadDashboard() {
+            if (requestInFlight) return;
+            requestInFlight = true;
+
+            ui.setContainerState(summaryPanel, 'loading');
+            ui.setContainerState(activityPanel, 'loading');
+
+            try {
+                user = await ui.loadCurrentUser();
+                const isCustomer = Boolean(user && user.is_customer);
+
+                if (isCustomer) {
+                    await loadCustomerDashboard();
+                } else {
+                    await loadDealershipDashboard();
+                }
+            } catch (err) {
+                appointments = [];
+                requests = [];
+                vehicles = [];
+                activityList.innerHTML = '';
+                if (err.status === 401) return;
+
+                const message = ui.errorMessageFor(err);
+                ui.setContainerState(summaryPanel, 'error', { errorText: message });
+                ui.setContainerState(activityPanel, 'error', { errorText: message });
+            } finally {
+                requestInFlight = false;
+            }
+        }
+
+        retryBtn.addEventListener('click', loadDashboard);
+
+        loadDashboard();
+    })();
+</script>
+{% endblock %}
