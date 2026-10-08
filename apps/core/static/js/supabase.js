@@ -38,18 +38,11 @@ function getSupabaseClient() {
 async function getSession() {
     const client = getSupabaseClient();
     if (!client) {
-        console.log('AUTH DEBUG: Supabase client is null');
         return null;
     }
 
     try {
         const { data: { session }, error } = await client.auth.getSession();
-
-        console.log('AUTH DEBUG: getSession()', {
-            hasSession: !!session,
-            user: session?.user?.email,
-            error: error?.message
-        });
 
         if (error) {
             console.error('Error getting session:', error);
@@ -58,7 +51,7 @@ async function getSession() {
 
         return session;
     } catch (err) {
-        console.error('AUTH DEBUG: getSession exception', err);
+        console.error('Exception getting session:', err);
         return null;
     }
 }

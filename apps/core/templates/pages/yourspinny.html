@@ -408,6 +408,20 @@
                 resultTitle.textContent = 'YourSpinny';
             }
 
+            const isOutOfScope = result.query_type === 'OUT_OF_SCOPE';
+            if (isOutOfScope) {
+                recommendationWrap.classList.add('hidden');
+                resultsWrap.classList.add('hidden');
+                closestWrap.classList.add('hidden');
+                noResults.classList.add('hidden');
+                matchCount.textContent = '';
+                requirementChips.innerHTML = '';
+                selected.clear();
+                syncCompareBar();
+                ui.setContainerState(panel, 'content');
+                return;
+            }
+
             renderChips(result.filters);
             contextFilters = result.filters || {};
 

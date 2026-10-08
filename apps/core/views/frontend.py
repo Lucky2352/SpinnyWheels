@@ -1,4 +1,15 @@
+from django.contrib.staticfiles import finders
+from django.http import FileResponse, Http404
+from django.views import View
 from django.views.generic import TemplateView
+
+
+class FaviconView(View):
+    def get(self, request, *args, **kwargs):
+        found = finders.find("favicon.svg")
+        if not found:
+            raise Http404("favicon not found")
+        return FileResponse(open(found, "rb"), content_type="image/svg+xml")
 
 
 class IndexView(TemplateView):

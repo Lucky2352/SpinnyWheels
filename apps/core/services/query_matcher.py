@@ -31,6 +31,8 @@ from apps.core.services.intent_parser import (
     _parse_sort,
     _parse_year,
     empty_intent,
+    has_automotive_hint,
+    has_out_of_scope_hint,
 )
 
 # ---------------------------------------------------------------------------
@@ -327,11 +329,28 @@ def match_query(
             intent["requested_information"] = ["general_knowledge"]
             return _matched(intent, context_mode, normalized)
         if not INVENTORY_SIGNAL_RE.search(normalized):
-            # Unknown general question: still a GENERAL_INFO intent answered
-            # from general knowledge — never turned into an inventory search.
-            intent = _intent_for("GENERAL_INFO")
-            intent["requested_information"] = ["general_knowledge"]
-            return _matched(intent, context_mode, normalized)
+            # Obviously non-automotive questions are OUT_OF_SCOPE and never
+            # touch inventory. Automotive general knowledge stays GENERAL_INFO.
+            if has_out_of_scope_hint(normalized) and not has_automotive_hint(
+                normalized
+            ):
+                return _matched(_intent_for("OUT_OF_SCOPE"), context_mode, normalized)
+            if has_automotive_hint(normalized):
+                intent = _intent_for("GENERAL_INFO")
+                intent["requested_information"] = ["general_knowledge"]
+                return _matched(intent, context_mode, normalized)
+            # Uncertain general question: a real vehicle brand keeps it
+            # automotive, everything else is outside the showroom domain.
+            lookup_data = _lookup_data(inventory_lookup)
+            if lookup_data is None:
+                intent = _intent_for("GENERAL_INFO")
+                intent["requested_information"] = ["general_knowledge"]
+                return _matched(intent, context_mode, normalized)
+            if _text_names_brand(lowered, lookup_data):
+                intent = _intent_for("GENERAL_INFO")
+                intent["requested_information"] = ["general_knowledge"]
+                return _matched(intent, context_mode, normalized)
+            return _matched(_intent_for("OUT_OF_SCOPE"), context_mode, normalized)
 
     # 3. Compositional filter extraction (vocabulary-driven only) ----------
     price_text, ambiguous = _mask_ambiguous_amounts(normalized)
@@ -397,6 +416,18 @@ def match_query(
         or bool(REQUEST_RE.search(normalized))
         or bool(INVENTORY_NOUN_RE.search(normalized))
     )
+
+    # Obviously irrelevant questions never become inventory searches. The
+    # automotive guard runs first so vehicle questions can never land here.
+    if (
+        has_out_of_scope_hint(normalized)
+        and not has_automotive_hint(normalized)
+        and brand is None
+        and model is None
+        and not has_signal
+        and not INVENTORY_SIGNAL_RE.search(normalized)
+    ):
+        return _matched(_intent_for("OUT_OF_SCOPE"), context_mode, normalized)
 
     # Ambiguous budget phrasing alone -> clarification; ambiguous budget plus
     # other hard filters -> Gemini (never invent a price range).
@@ -690,6 +721,20 @@ def _resolve_identity(lowered: str, lookup: Optional[dict]) -> tuple:
         if len(t) >= 3 and t not in VOCAB and t not in known_tokens
     ]
     return brand, model, unknown
+
+
+def _text_names_brand(lowered: str, lookup: Optional[dict]) -> bool:
+    if not lookup:
+        return False
+    brands = [str(b) for b in (lookup.get("brands") or []) if b]
+    models = [(str(b), str(m)) for b, m in (lookup.get("models") or []) if b and m]
+    for cand_brand, cand_model in models:
+        if f"{cand_brand} {cand_model}".lower() in lowered:
+            return True
+    for cand_brand in brands:
+        if re.search(rf"\b{re.escape(cand_brand.lower())}\b", lowered):
+            return True
+    return False
 
 
 def _names_resolve(names: list[str], lookup: Optional[dict]) -> bool:
