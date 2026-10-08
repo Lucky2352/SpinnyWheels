@@ -384,20 +384,28 @@ function showToast(message, tone = 'success') {
     setTimeout(() => toast.remove(), 4000);
 }
 
-const roleState = { user: null, loaded: false };
+const roleState = { user: null, loaded: false, promise: null };
 
 async function loadCurrentUser() {
     if (roleState.loaded) return roleState.user;
+    if (roleState.promise) return roleState.promise;
     if (!window.AutoFlowAPI) return null;
 
-    try {
-        roleState.user = await window.AutoFlowAPI.me();
-    } catch (err) {
-        roleState.user = null;
-    }
-
-    roleState.loaded = true;
-    return roleState.user;
+    roleState.promise = window.AutoFlowAPI.me().then(
+        (user) => {
+            roleState.user = user;
+            roleState.loaded = true;
+            roleState.promise = null;
+            return user;
+        },
+        () => {
+            roleState.user = null;
+            roleState.loaded = true;
+            roleState.promise = null;
+            return null;
+        }
+    );
+    return roleState.promise;
 }
 
 function applyRoleVisibility(user) {

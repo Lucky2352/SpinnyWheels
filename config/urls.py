@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import include, path
 from apps.core.views.frontend import (
+    FaviconView,
     IndexView,
     LoginView,
     RegisterView,
@@ -21,6 +22,7 @@ from apps.core.views.frontend import (
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("apps.core.urls")),
+    path("favicon.ico", FaviconView.as_view(), name="favicon"),
     path("", IndexView.as_view(), name="index"),
     path("login/", LoginView.as_view(), name="login"),
     path("register/", RegisterView.as_view(), name="register"),

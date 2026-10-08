@@ -88,6 +88,75 @@ MAX_YEAR = 2100
 MIN_YEAR = 1900
 MAX_VEHICLE_NAMES = 3
 
+# Obviously non-automotive topics. Used to recognise OUT_OF_SCOPE queries
+# without ever touching inventory. The list is intentionally narrow: anything
+# not listed here is decided by the automotive guard below or by Gemini, so
+# automotive questions can never be misclassified by an over-broad keyword.
+_OUT_OF_SCOPE_RE = re.compile(
+    r"capital\s+of|\bcricket\b|\bfootball\b|\bpython\b|\bjoke\b|\bjokes\b"
+    r"|elon\s+musk|\bweather\b|\bequation\b|\bsolve\b"
+    r"|write\s+.*\b(program|code)\b|\bprogram\b"
+    r"|who\s+won\b|who\s+is\b|who\s+was\b|who\s+are\b"
+    r"|\bpresident\b|prime\s+minister|\bmovie\b|\bmovies\b"
+    r"|\bsong\b|\bsongs\b|\brecipe\b",
+    re.IGNORECASE,
+)
+
+# Broad automotive vocabulary guard. If any of these appear, the query is
+# treated as automotive and never classified OUT_OF_SCOPE locally.
+_AUTOMOTIVE_RE = re.compile(
+    r"\b(car|cars|vehicle|vehicles|auto|autos|automobile|automobiles|suv|suvs"
+    r"|hatchback|hatchbacks|sedan|sedans|jeep|jeeps|van|vans|wagon|wagons"
+    r"|gaadi|gadi|bike|bikes|truck|bus|petrol|gasoline|diesel|cng|electric"
+    r"|\bev\b|hybrid|hybrids|fuel|mileage|average|automatic|manual|amt|cvt|dct"
+    r"|transmission|gearbox|gear|clutch|torque|horsepower|\bhp\b|engine|motor"
+    r"|turbo|turbocharger|turbochargers|brake|abs|airbag|ncap|safety|suspension|steering|wheel|wheels"
+    r"|tyre|tire|tires|oil|battery|coolant|radiator|exhaust|headlight|seat"
+    r"|seats|seater|seating|boot|bonnet|bumper|mirror|windshield|chassis"
+    r"|buy|purchase|sell|price|cost|budget|lakh|lac|lacs|crore|loan|\bemi\b"
+    r"|insurance|warranty|ownership|registration|\brc\b|pollution|\bpuc\b"
+    r"|service|servicing|repair|repairs|maintenance|appointment|appointments"
+    r"|test\s*drive|dealership|dealer|showroom|inventory|stock|available"
+    r"|availability|brand|model|variant|year|kilometer|\bkm\b|driven|\bused\b"
+    r"|preowned|certified|drive|driving|driver|road|highway|traffic|parking)\b",
+    re.IGNORECASE,
+)
+
+
+def has_automotive_hint(text: str) -> bool:
+    return bool(_AUTOMOTIVE_RE.search(text or ""))
+
+
+def has_out_of_scope_hint(text: str) -> bool:
+    return bool(_OUT_OF_SCOPE_RE.search(text or ""))
+
+
+def is_out_of_scope_text(
+    query: str,
+    *,
+    brands: Iterable[str] = (),
+    models: Iterable[tuple] = (),
+) -> bool:
+    text = (query or "").strip()
+    if not text:
+        return False
+    if not has_out_of_scope_hint(text):
+        return False
+    if has_automotive_hint(text):
+        return False
+    lowered = text.lower()
+    for brand in brands or ():
+        if brand and str(brand).lower() in lowered:
+            return False
+    for pair in models or ():
+        try:
+            brand, model = pair
+        except (TypeError, ValueError):
+            continue
+        if brand and model and f"{brand} {model}".lower() in lowered:
+            return False
+    return True
+
 
 def empty_intent() -> dict:
     """Canonical internal intent structure.
@@ -757,6 +826,12 @@ def fallback_intent(
     text = (query or "").strip()
     if not text:
         intent["intent"] = "UNKNOWN"
+        return intent
+
+    if is_out_of_scope_text(text, brands=brands, models=models):
+        intent["intent"] = "UNKNOWN"
+        intent["query_type"] = "OUT_OF_SCOPE"
+        intent["requires_inventory"] = False
         return intent
 
     lowered = text.lower()

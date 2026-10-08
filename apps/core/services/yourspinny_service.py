@@ -6,7 +6,12 @@ from apps.core.exceptions import DomainError, ResourceNotFoundError
 from apps.core.repositories.vehicle_repository import VehicleRepository
 from apps.core.services.gemini_provider import GeminiProvider
 from apps.core.services.intent_parser import fallback_intent, validate_intent
-from apps.core.services.query_matcher import classify_context, faq_lookup, match_query
+from apps.core.services.query_matcher import (
+    GREETING_RE,
+    classify_context,
+    faq_lookup,
+    match_query,
+)
 
 logger = logging.getLogger("autoflow.ai")
 
@@ -25,6 +30,12 @@ CLARIFICATION_MESSAGE = (
 GENERAL_UNAVAILABLE_MESSAGE = (
     "I don't have an answer for that right now: it isn't part of the showroom "
     "inventory data, and the AI assistant is temporarily unavailable."
+)
+
+OUT_OF_SCOPE_MESSAGE = (
+    "I’m spinnyWheels’ automotive assistant, so that’s outside my domain. "
+    "I can help with vehicles, buying recommendations, inventory, test drives, "
+    "servicing, repairs, appointments, and other automotive questions."
 )
 
 AUTOMATIC_TRANSMISSIONS = {"AUTOMATIC", "AMT", "CVT", "DCT"}
@@ -79,9 +90,22 @@ class YourSpinnyService:
         self,
         vehicle_repo: Optional[VehicleRepository] = None,
         gemini: Optional[GeminiProvider] = None,
+        ai_provider=None,
+        groq=None,
     ):
         self._vehicles = vehicle_repo or VehicleRepository()
-        self._gemini = gemini or GeminiProvider()
+        # Prefer ai_provider if provided, then groq, then gemini (for backward compat)
+        from apps.core.services.ai_provider import AIProvider
+
+        if ai_provider is not None:
+            self._ai = ai_provider
+        elif groq is not None:
+            self._ai = groq
+        elif gemini is not None:
+            self._ai = gemini
+        else:
+            self._ai = AIProvider()
+        self._gemini = self._ai  # backward compat name
         # Per-instance cache of distinct brands/models: at most two cheap
         # DISTINCT queries per request, only when the matcher actually needs
         # to resolve brand/model tokens.
@@ -112,6 +136,11 @@ class YourSpinnyService:
         )
 
         if intent_name == "UNKNOWN":
+            if query_type == "OUT_OF_SCOPE" and not GREETING_RE.match(query.strip()):
+                return self._response(
+                    query, intent, answer=OUT_OF_SCOPE_MESSAGE, results=[],
+                    total_matches=0, meta=meta,
+                )
             answer = (
                 CLARIFICATION_MESSAGE if query_type == "CLARIFICATION" else UNKNOWN_MESSAGE
             )
@@ -296,7 +325,7 @@ class YourSpinnyService:
 
         meta = {"processing_path": "gemini_fallback", "intent_source": "local"}
 
-        # 1. Fast Path: high-confidence local match, no Gemini call.
+        # 1. Fast Path: high-confidence local match, no AI call.
         match = match_query(
             query,
             known_context=context_filters,
@@ -310,10 +339,10 @@ class YourSpinnyService:
             if intent is not None:
                 meta = {"processing_path": "fast_path", "intent_source": "local"}
 
-        # 2. Gemini fallback: strict structured JSON into the SAME validator.
-        if intent is None and self._gemini.is_available:
+        # 2. AI fallback: strict structured JSON into the SAME validator.
+        if intent is None and self._ai.is_available:
             try:
-                raw = self._gemini.extract_intent(query)
+                raw = self._ai.extract_intent(query)
                 if isinstance(raw, dict):
                     intent = validate_intent(raw)
                     if intent["intent"] == "UNKNOWN" and not raw.get("intent"):
@@ -324,7 +353,7 @@ class YourSpinnyService:
                             "intent_source": "gemini",
                         }
             except Exception as exc:
-                logger.warning("Gemini intent extraction failed, using fallback: %s", exc)
+                logger.warning("AI intent extraction failed, using fallback: %s", exc)
                 intent = None
 
         # 3. Deterministic last resort when Gemini is unavailable/unusable.
@@ -501,9 +530,9 @@ class YourSpinnyService:
 
         # CASE A: all vehicles verified from inventory.
         analysis = ""
-        if meta.get("processing_path") != "fast_path" and self._gemini.is_available:
+        if meta.get("processing_path") != "fast_path" and self._ai.is_available:
             try:
-                analysis = self._gemini.generate_comparison(vehicle_data)
+                analysis = self._ai.generate_comparison(vehicle_data)
             except Exception:
                 analysis = ""
         if not analysis:
@@ -573,13 +602,13 @@ class YourSpinnyService:
         # Fast-path queries get deterministic Django-generated text: no Gemini
         # answer call, no extra latency. Gemini-backed intents may ask for a
         # richer explanation; if it fails, the same template still works.
-        if meta.get("processing_path") != "fast_path" and self._gemini.is_available:
+        if meta.get("processing_path") != "fast_path" and self._ai.is_available:
             try:
-                answer = self._gemini.generate_answer(query, intent, payload)
+                answer = self._ai.generate_answer(query, intent, payload)
                 if answer and str(answer).strip():
                     return str(answer).strip()
             except Exception as exc:
-                logger.warning("Gemini answer generation failed, using template: %s", exc)
+                logger.warning("AI answer generation failed, using template: %s", exc)
         return self._template_answer(intent, results, total_matches, recommendation)
 
     def _general_answer(self, query: str) -> str:
@@ -591,13 +620,13 @@ class YourSpinnyService:
         faq = faq_lookup(query)
         if faq:
             return faq
-        if self._gemini.is_available:
+        if self._ai.is_available:
             try:
-                answer = self._gemini.answer_general(query)
+                answer = self._ai.answer_general(query)
                 if answer and str(answer).strip():
                     return str(answer).strip()
             except Exception as exc:
-                logger.warning("Gemini general answer failed: %s", exc)
+                logger.warning("AI general answer failed: %s", exc)
         return GENERAL_UNAVAILABLE_MESSAGE
 
     def _template_answer(
