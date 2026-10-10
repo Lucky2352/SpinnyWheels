@@ -493,6 +493,10 @@ def match_query(
         intent["requires_recommendation"] = True
         intent["requested_information"] = ["recommendation"]
     else:
+        # Require at least one hard filter, exclusion, sort, or explicit request verb to be confident on the fast path;
+        # queries without filters or search verbs ("slow car", "good car?") should be handled semantically by AI.
+        if not (has_hard_filter or has_exclusion or intent["sort"] is not None or bool(REQUEST_RE.search(normalized))):
+            return _unmatched("insufficient_inventory_signal")
         intent["intent"] = "SEARCH"
         intent["query_type"] = "INVENTORY_SEARCH"
         intent["requested_information"] = ["inventory"]

@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -33,9 +34,7 @@ GENERAL_UNAVAILABLE_MESSAGE = (
 )
 
 OUT_OF_SCOPE_MESSAGE = (
-    "I’m spinnyWheels’ automotive assistant, so that’s outside my domain. "
-    "I can help with vehicles, buying recommendations, inventory, test drives, "
-    "servicing, repairs, appointments, and other automotive questions."
+    "I'm YourSpinny, an automobile AI assistant. That's not my domain. Is there anything else I can help you with?"
 )
 
 AUTOMATIC_TRANSMISSIONS = {"AUTOMATIC", "AMT", "CVT", "DCT"}
@@ -111,6 +110,21 @@ class YourSpinnyService:
         # to resolve brand/model tokens.
         self._lookup_cache: Optional[dict] = None
 
+    def _call_ai_extract_intent(self, query: str, context: Optional[dict] = None) -> dict:
+        try:
+            return self._ai.extract_intent(query, context=context)
+        except TypeError:
+            return self._ai.extract_intent(query)
+
+    def _call_ai_answer_general(self, query: str, context: str = "", query_type: str = "GENERAL_INFO") -> str:
+        try:
+            return self._ai.answer_general(query, context=context, query_type=query_type)
+        except TypeError:
+            try:
+                return self._ai.answer_general(query, context=context)
+            except TypeError:
+                return self._ai.answer_general(query)
+
     # ------------------------------------------------------------------
     # Unified dynamic query flow
     # ------------------------------------------------------------------
@@ -142,14 +156,28 @@ class YourSpinnyService:
                     total_matches=0, meta=meta,
                 )
             answer = (
-                CLARIFICATION_MESSAGE if query_type == "CLARIFICATION" else UNKNOWN_MESSAGE
+                self._clarification_answer(query) if query_type == "CLARIFICATION" else UNKNOWN_MESSAGE
             )
             return self._response(
                 query, intent, answer=answer, results=[], total_matches=0, meta=meta
             )
 
-        if query_type == "GENERAL_INFO":
+        if query_type in {"GENERAL_INFO", "TROUBLESHOOTING"}:
             # Never queries the database: general automotive knowledge only.
+            return self._response(
+                query,
+                intent,
+                answer=self._general_answer(query, query_type=query_type),
+                results=[],
+                total_matches=0,
+                meta=meta,
+            )
+
+        if intent_name == "COMPARISON":
+            return self._handle_comparison(query, intent, dealership_id, meta)
+
+        if intent_name == "RECOMMENDATION" and not intent.get("requires_inventory") and not any(v is not None for v in intent["filters"].values()) and not any(w in query.lower() for w in ("showroom", "inventory", "stock")):
+            # General recommendation request without asking for showroom inventory
             return self._response(
                 query,
                 intent,
@@ -159,9 +187,6 @@ class YourSpinnyService:
                 meta=meta,
             )
 
-        if intent_name == "COMPARISON":
-            return self._handle_comparison(query, intent, dealership_id, meta)
-
         if intent_name == "INFO" and intent["vehicle_names"]:
             # Named-vehicle questions are answered from the named records only.
             # When a name is not in stock we must answer about that name
@@ -169,6 +194,16 @@ class YourSpinnyService:
             # back to silently listing every other vehicle.
             vehicles = self._vehicles.find_by_names(
                 intent["vehicle_names"], dealership_id=dealership_id
+            )
+        elif not intent.get("requires_inventory"):
+            # General automotive question or concept that doesn't need showroom inventory
+            return self._response(
+                query,
+                intent,
+                answer=self._general_answer(query),
+                results=[],
+                total_matches=0,
+                meta=meta,
             )
         else:
             vehicles = self._vehicles.search(
@@ -342,10 +377,10 @@ class YourSpinnyService:
         # 2. AI fallback: strict structured JSON into the SAME validator.
         if intent is None and self._ai.is_available:
             try:
-                raw = self._ai.extract_intent(query)
+                raw = self._call_ai_extract_intent(query, context=context_filters)
                 if isinstance(raw, dict):
                     intent = validate_intent(raw)
-                    if intent["intent"] == "UNKNOWN" and not raw.get("intent"):
+                    if intent["intent"] == "UNKNOWN" and not raw.get("intent") and not raw.get("query_type"):
                         intent = None
                     else:
                         meta = {
@@ -611,8 +646,8 @@ class YourSpinnyService:
                 logger.warning("AI answer generation failed, using template: %s", exc)
         return self._template_answer(intent, results, total_matches, recommendation)
 
-    def _general_answer(self, query: str) -> str:
-        """General automotive knowledge answer: FAQ first, then Gemini.
+    def _general_answer(self, query: str, context: str = "", query_type: str = "GENERAL_INFO") -> str:
+        """General automotive knowledge answer: FAQ first, then Gemini/Groq.
 
         Never touches inventory: if neither source can answer, say so
         truthfully instead of inventing facts or database results.
@@ -622,7 +657,7 @@ class YourSpinnyService:
             return faq
         if self._ai.is_available:
             try:
-                answer = self._ai.answer_general(query)
+                answer = self._call_ai_answer_general(query, context=context, query_type=query_type)
                 if answer and str(answer).strip():
                     return str(answer).strip()
             except Exception as exc:
@@ -840,9 +875,24 @@ class YourSpinnyService:
             k: v for k, v in intent["filters"].items() if v is not None
         }
 
+        # Structured response fields (Sections 20, 22, 23)
+        inventory_used = bool(result_data or recommendation_data or (comparison and comparison.get("vehicles")))
+        car_details = recommendation_data or (result_data[0] if (len(result_data) == 1 and inventory_used) else None)
+        answer_summary = self._extract_summary(answer)
+        speech_text = self._format_speech_text(answer)
+        scope = intent.get("scope") or ("non_automotive" if intent.get("query_type") == "OUT_OF_SCOPE" else "automotive")
+
         response = {
-            "query": query,
+            "scope": scope,
             "intent": intent["intent"],
+            "query_type": intent.get("query_type", "UNKNOWN"),
+            "answer_summary": answer_summary,
+            "answer_text": answer,
+            "speech_text": speech_text,
+            "car_details": car_details,
+            "inventory_used": inventory_used,
+            # Preserved backward-compatible fields:
+            "query": query,
             "answer": answer,
             "filters": applied_filters,
             "results": result_data,
@@ -856,11 +906,99 @@ class YourSpinnyService:
         if meta is not None:
             response["processing_path"] = meta.get("processing_path", "unknown")
             response["intent_source"] = meta.get("intent_source", "unknown")
-        response["query_type"] = intent.get("query_type", "UNKNOWN")
         response["context_mode"] = intent.get("context_mode", "NONE")
         if any(bool(v) for v in (intent.get("exclusions") or {}).values()):
             response["exclusions"] = intent["exclusions"]
         return response
+
+    def _extract_summary(self, answer: str) -> str:
+        if not answer or not answer.strip():
+            return ""
+        # If the answer already contains a summary marker, extract it
+        match = re.search(r"(?:SUMMARY|Summary):\s*(.+?)(?:\n\s*(?:ANSWER|Answer):|\n\n|$)", answer, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        # Otherwise, derive a concise summary from the first 1-2 complete sentences
+        cleaned = re.sub(r"[\n\r]+", " ", answer).strip()
+        sentences = re.split(r"(?<=[.!?])\s+", cleaned)
+        summary = ""
+        for s in sentences:
+            if not summary:
+                summary = s
+            elif len(summary) + len(s) + 1 <= 200:
+                summary += " " + s
+            else:
+                break
+        return summary or cleaned[:180]
+
+    def _format_speech_text(self, answer: str) -> str:
+        if not answer or not answer.strip():
+            return ""
+        # Strip internal UI / structure markers if present
+        text = re.sub(r"^(?:SUMMARY|Summary):\s*.+?\n\s*(?:ANSWER|Answer):\s*", "", answer, flags=re.DOTALL)
+        text = re.sub(r"\b(?:SUMMARY|ANSWER):\s*", "", text)
+        # Strip markdown links [label](url) -> label
+        text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+        # Strip markdown headers, bold, italics, code blocks
+        text = re.sub(r"[*_#`~]+", "", text)
+        # Convert Indian currency symbols into words
+        text = re.sub(
+            r"₹\s*(\d[\d,]*)\s*(lakh|lakhs|crore|crores|thousand|k)?",
+            lambda m: f"{m.group(1)} {m.group(2) or ''} rupees".strip(),
+            text,
+            flags=re.IGNORECASE,
+        )
+        text = re.sub(
+            r"\brs\.?\s*(\d[\d,]*)\s*(lakh|lakhs|crore|crores|thousand|k)?",
+            lambda m: f"{m.group(1)} {m.group(2) or ''} rupees".strip(),
+            text,
+            flags=re.IGNORECASE,
+        )
+        # Natural spoken pronunciation for common acronyms
+        text = re.sub(r"\bCVT\b", "C-V-T", text)
+        text = re.sub(r"\bDCT\b", "D-C-T", text)
+        text = re.sub(r"\bAMT\b", "A-M-T", text)
+        text = re.sub(r"\bABS\b", "A-B-S", text)
+        text = re.sub(r"\bEV\b", "E-V", text)
+        text = re.sub(r"\bEVs\b", "E-Vs", text)
+        text = re.sub(r"\bESC\b", "E-S-C", text)
+        text = re.sub(r"\bADAS\b", "A-D-A-S", text)
+        # Clean bullet dashes and extra whitespace
+        text = re.sub(r"^\s*[-•*]\s+", "", text, flags=re.MULTILINE)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    def _clarification_answer(self, query: str) -> str:
+        lowered = query.lower()
+        if "slow" in lowered:
+            return (
+                "If you mean your car feels unusually slow or sluggish, I can help you narrow down "
+                "the possible causes like a clogged air filter, fuel delivery issues, or transmission slip. "
+                "If you're looking for an economical or beginner car to buy, tell me your budget and preferences "
+                "and I'll help with that."
+            )
+        if "good" in lowered or "worth" in lowered:
+            return (
+                "Could you clarify which car or requirement you have in mind? If you're considering a "
+                "specific model, tell me the name. If you'd like a recommendation, share your budget and primary use."
+            )
+        if "comfortable" in lowered:
+            return (
+                "Comfort depends on suspension, seating space, and transmission. "
+                "Are you looking for city comfort or highway cruising? Tell me your budget or vehicle preferences."
+            )
+        if self._ai.is_available:
+            try:
+                ans = self._call_ai_answer_general(
+                    f"The customer's query '{query}' is brief or ambiguous. "
+                    "In 2 sentences, ask a polite, concise clarification presenting the two most likely automotive interpretations.",
+                    query_type="CLARIFICATION",
+                )
+                if ans and str(ans).strip():
+                    return str(ans).strip()
+            except Exception:
+                pass
+        return CLARIFICATION_MESSAGE
 
     def _describe_filters(self, filters: dict) -> str:
         parts: list[str] = []

@@ -21,14 +21,23 @@ class AIProvider:
     def extract_requirements(self, query: str) -> dict:
         return self._provider.extract_requirements(query)
 
-    def extract_intent(self, query: str) -> dict:
-        return self._provider.extract_intent(query)
+    def extract_intent(self, query: str, context: Optional[dict] = None) -> dict:
+        try:
+            return self._provider.extract_intent(query, context=context)
+        except TypeError:
+            return self._provider.extract_intent(query)
 
     def generate_answer(self, query: str, intent: dict, payload: dict) -> str:
         return self._provider.generate_answer(query, intent, payload)
 
-    def answer_general(self, query: str, context: str = "") -> str:
-        return self._provider.answer_general(query, context)
+    def answer_general(self, query: str, context: str = "", query_type: str = "GENERAL_INFO") -> str:
+        try:
+            return self._provider.answer_general(query, context=context, query_type=query_type)
+        except TypeError:
+            try:
+                return self._provider.answer_general(query, context=context)
+            except TypeError:
+                return self._provider.answer_general(query)
 
     def generate_explanation(self, query: str, candidates: list[dict]) -> str:
         return self._provider.generate_explanation(query, candidates)

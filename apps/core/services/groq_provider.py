@@ -98,16 +98,15 @@ class GroqProvider:
             logger.exception("Groq requirement extraction failed")
             raise
 
-    def extract_intent(self, query: str) -> dict:
+    def extract_intent(self, query: str, context: Optional[dict] = None) -> dict:
         system_prompt = (
-            "You are the intent extraction component of YourSpinny, an AI vehicle "
-            "assistant for a car dealership showroom. Read the customer's "
-            "natural-language automotive question (English or informal Hinglish) "
-            "and extract a structured intent.\n"
-            "Return ONLY a JSON object with this exact shape:\n"
+            "You are the intent extraction component of YourSpinny, an expert Automobile AI Assistant for spinnyWheels car showroom.\n"
+            "Analyze the customer's natural-language query and extract structured intent.\n"
+            "Return ONLY a JSON object with this shape:\n"
             "{\n"
             '  "intent": "SEARCH" | "RECOMMENDATION" | "COMPARISON" | "INFO" | "UNKNOWN",\n'
-            '  "query_type": "INVENTORY_SEARCH" | "INVENTORY_RECOMMENDATION" | "INVENTORY_COMPARISON" | "INVENTORY_AVAILABILITY" | "VEHICLE_INFO" | "GENERAL_INFO" | "GENERAL_COMPARISON" | "CLARIFICATION" | "OUT_OF_SCOPE",\n'
+            '  "query_type": "INVENTORY_SEARCH" | "INVENTORY_RECOMMENDATION" | "INVENTORY_COMPARISON" | "INVENTORY_AVAILABILITY" | "VEHICLE_INFO" | "GENERAL_INFO" | "GENERAL_COMPARISON" | "TROUBLESHOOTING" | "CLARIFICATION" | "OUT_OF_SCOPE",\n'
+            '  "scope": "automotive" | "non_automotive",\n'
             '  "normalized_question": string,\n'
             '  "context_mode": "NONE" | "NEW_SEARCH" | "FOLLOW_UP",\n'
             '  "confidence": number,\n'
@@ -136,13 +135,32 @@ class GroqProvider:
             '  "comparison_requested": boolean,\n'
             '  "requires_recommendation": boolean\n'
             "}\n"
-            "Follow the same semantics as the original Gemini implementation: be strict, no inventory hallucination, "
-            "classify general automotive knowledge as GENERAL_INFO, out of domain as OUT_OF_SCOPE.\n"
+            "CRITICAL RULES FOR TWO KNOWLEDGE SOURCES:\n"
+            "1. SOURCE A: GENERAL AUTOMOTIVE KNOWLEDGE (requires_inventory=false, filters all null):\n"
+            "   - Automotive concepts & technology: 'What is a CVT?', 'What is torque?', 'How does turbo work?', 'How does ABS work?' -> query_type='GENERAL_INFO', intent='INFO'.\n"
+            "   - General driving/fuel/tech advice: 'Should I buy an EV?', 'Petrol vs diesel for city?', 'Automatic vs manual?' -> query_type='GENERAL_INFO', intent='INFO'.\n"
+            "   - General recommendations (not asking for showroom inventory): 'Suggest me a family car', 'What car should I buy for city commute?' -> query_type='GENERAL_INFO', intent='INFO'.\n"
+            "   - General comparisons: 'Swift vs Punch', 'CVT vs DCT', 'SUV vs sedan' -> query_type='GENERAL_COMPARISON', intent='COMPARISON'.\n"
+            "   - Vehicle impressions: 'Is Fortuner good for long trips?', 'What do you think of Honda City?' -> query_type='GENERAL_INFO', intent='INFO'.\n"
+            "   - Troubleshooting & problems: 'Why does my car feel slow?', 'Car shaking when braking', 'Overheating on highway', 'Brakes squeaking', 'Mileage dropped' -> query_type='TROUBLESHOOTING', intent='INFO'.\n"
+            "   - Ambiguous phrases: 'slow car', 'good car?', 'comfortable', 'worth it?' -> query_type='CLARIFICATION' (or GENERAL_INFO), intent='UNKNOWN'. NEVER treat ambiguous phrases as inventory searches!\n"
+            "2. SOURCE B: SHOWROOM INVENTORY (requires_inventory=true):\n"
+            "   - ONLY when user explicitly asks about available cars, showroom stock, prices, or dealership inventory: 'What automatic cars do you have under 15 lakh?', 'Show me Honda cars in your showroom', 'Do you have any 7 seaters?', 'Show me something cheap from your showroom', 'Suggest a family car from your showroom'.\n"
+            "   - Convert lakh: 1 lakh = 100000, 1 crore = 10000000.\n"
+            "   - Normalize transmission: MANUAL, AUTOMATIC, AMT, CVT, DCT. Fuel: PETROL, DIESEL, CNG, ELECTRIC, HYBRID.\n"
+            "3. OUT OF DOMAIN (requires_inventory=false, scope='non_automotive', intent='UNKNOWN', query_type='OUT_OF_SCOPE'):\n"
+            "   - Questions clearly unrelated to automobiles: cooking, sports scores, jokes, weather, general history, programming.\n"
+            "   - Automotive questions are NEVER out of domain ('Should I buy an EV?' is automotive, scope='automotive').\n"
+            "4. CONTEXT / FOLLOW-UPS:\n"
+            "   - If previous context is provided, resolve pronouns like 'that one', 'anything cheaper', 'what about automatic' relative to previously discussed vehicles or filters.\n"
             "Return only valid JSON, no markdown, no commentary."
         )
+        user_content = f"Question: {query}"
+        if context:
+            user_content = f"Previous Conversation Context: {json.dumps(context, default=str)}\nQuestion: {query}"
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query},
+            {"role": "user", "content": user_content},
         ]
         try:
             text = self._make_request(messages, temperature=0.1, response_format={"type": "json_object"})
@@ -201,15 +219,25 @@ class GroqProvider:
             raise RuntimeError("Groq returned an empty answer")
         return text
 
-    def answer_general(self, query: str, context: str = "") -> str:
+    def answer_general(self, query: str, context: str = "", query_type: str = "GENERAL_INFO") -> str:
+        troubleshooting_instruction = (
+            "If the customer is asking about an automotive problem, symptom, or troubleshooting (e.g. car slow, vibrating/shaking, noise, overheating, mileage drop, warning light, hard steering):\n"
+            "- Understand the symptom.\n"
+            "- Explain common possible causes clearly and objectively.\n"
+            "- Explain what the owner can safely check.\n"
+            "- Explain when professional inspection is needed.\n"
+            "- Avoid declaring a definitive diagnosis without an in-person physical inspection.\n"
+            "- SAFETY FIRST: For potentially dangerous situations (such as brake problems, severe overheating, smoke, fuel leaks, loss of steering, highway emergencies), prioritize safety and urgently recommend safely stopping and seeking professional roadside assistance.\n\n"
+        )
         system_prompt = (
-            "You are YourSpinny, a helpful automotive knowledge assistant.\n"
-            "Answer the customer's question using GENERAL automotive knowledge.\n"
-            "STRICT RULES:\n"
-            "- Never claim a vehicle is in stock, available, or reserved — you have no access to the showroom database.\n"
-            "- Never invent database fields (mileage figures for specific stock, horsepower of specific inventory rows, colours, previous owners).\n"
-            "- If exact figures vary by variant, say so instead of guessing.\n"
-            "- Plain text only, no markdown tables. Maximum 8 sentences, concise and factual."
+            "You are YourSpinny, an expert Automobile AI Assistant for spinnyWheels showroom.\n"
+            "Answer the customer's question thoroughly and accurately using GENERAL automotive knowledge.\n"
+            + (troubleshooting_instruction if query_type == "TROUBLESHOOTING" else "")
+            + "STRICT RULES:\n"
+            "- Never claim a vehicle is in stock, available, or reserved — you have no access to the showroom database in this mode.\n"
+            "- Never invent showroom database fields.\n"
+            "- If exact figures vary by variant or model year, clarify that instead of guessing.\n"
+            "- Provide a clear, natural, and helpful automotive answer. Plain text only."
         )
         user_content = f"Question: {query}"
         if context:
