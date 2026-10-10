@@ -77,7 +77,7 @@ class GeminiProvider:
             logger.exception("Gemini requirement extraction failed")
             raise RuntimeError(f"Gemini extraction failed: {exc}") from exc
 
-    def extract_intent(self, query: str) -> dict:
+    def extract_intent(self, query: str, context: Optional[dict] = None) -> dict:
         """Extract a structured vehicle intent from natural language.
 
         Returns the raw parsed JSON only; Django validates the structure via
@@ -88,14 +88,13 @@ class GeminiProvider:
             raise RuntimeError("Gemini API key not configured")
 
         system_prompt = (
-            "You are the intent extraction component of YourSpinny, an AI vehicle "
-            "assistant for a car dealership showroom. Read the customer's "
-            "natural-language automotive question (English or informal Hinglish) "
-            "and extract a structured intent.\n"
+            "You are the intent extraction component of YourSpinny, an expert Automobile AI Assistant for spinnyWheels car showroom.\n"
+            "Read the customer's natural-language automotive question (English or informal Hinglish) and extract structured intent.\n"
             "Return ONLY a JSON object with this exact shape:\n"
             "{\n"
             "  \"intent\": \"SEARCH\" | \"RECOMMENDATION\" | \"COMPARISON\" | \"INFO\" | \"UNKNOWN\",\n"
-            "  \"query_type\": \"INVENTORY_SEARCH\" | \"INVENTORY_RECOMMENDATION\" | \"INVENTORY_COMPARISON\" | \"INVENTORY_AVAILABILITY\" | \"VEHICLE_INFO\" | \"GENERAL_INFO\" | \"GENERAL_COMPARISON\" | \"CLARIFICATION\" | \"OUT_OF_SCOPE\",\n"
+            "  \"query_type\": \"INVENTORY_SEARCH\" | \"INVENTORY_RECOMMENDATION\" | \"INVENTORY_COMPARISON\" | \"INVENTORY_AVAILABILITY\" | \"VEHICLE_INFO\" | \"GENERAL_INFO\" | \"GENERAL_COMPARISON\" | \"TROUBLESHOOTING\" | \"CLARIFICATION\" | \"OUT_OF_SCOPE\",\n"
+            "  \"scope\": \"automotive\" | \"non_automotive\",\n"
             "  \"normalized_question\": string,\n"
             "  \"context_mode\": \"NONE\" | \"NEW_SEARCH\" | \"FOLLOW_UP\",\n"
             "  \"confidence\": number,\n"
@@ -157,18 +156,20 @@ class GeminiProvider:
             "  * INFO / VEHICLE_INFO: \"tell me about X\", \"details of X\" -> vehicle_names +\n"
             "    requested_information [\"details\", \"specifications\"].\n"
             "  * INFO / GENERAL_INFO: general automotive knowledge questions (\"what is ABS\", \"how does a\n"
-            "    CVT work\") -> requires_inventory=false, requested_information [\"general_knowledge\"],\n"
-            "    filters all null. NEVER turn these into inventory searches.\n"
+            "    CVT work\", \"should I buy an EV\", \"is diesel still worth it\") -> requires_inventory=false,\n"
+            "    requested_information [\"general_knowledge\"], filters all null. NEVER turn these into inventory searches.\n"
             "    Automotive scope includes vehicles, buying guidance, inventory, test drives,\n"
             "    servicing, repairs, maintenance, appointments, ownership and dealership services.\n"
-            "    Questions about servicing frequency, maintenance, repairs or appointments are\n"
-            "    automotive and must never be OUT_OF_SCOPE.\n"
-            "  * UNKNOWN / CLARIFICATION: the request is too ambiguous to act on safely (ask a question).\n"
+            "  * INFO / TROUBLESHOOTING: automotive problems, symptoms, noises, vibrations, sluggishness\n"
+            "    (\"why is my car slow\", \"why does my car vibrate\", \"overheating on highway\", \"mileage dropped\") ->\n"
+            "    requires_inventory=false, requested_information [\"troubleshooting\"], filters all null.\n"
+            "  * UNKNOWN / CLARIFICATION: brief ambiguous queries (\"slow car\", \"good car?\", \"comfortable\")\n"
+            "    where intent cannot be determined safely without guessing -> requires_inventory=false, ask clarification.\n"
             "  * UNKNOWN / OUT_OF_SCOPE: greetings, thanks, or anything clearly unrelated to\n"
             "    automobiles, vehicles, dealerships, buying, inventory, test drives, servicing,\n"
             "    repairs, maintenance, appointments or ownership (e.g. capital of France,\n"
             "    cricket results, Python programs, jokes, celebrities, maths, weather).\n"
-            "    OUT_OF_SCOPE needs requires_inventory=false, empty filters and empty vehicle_names.\n"
+            "    OUT_OF_SCOPE needs scope=\"non_automotive\", requires_inventory=false, empty filters and empty vehicle_names.\n"
             "- constraints vs preferences: only state-stated facts become filters (constraints);\n"
             "  comfort, style, \"good mileage\", \"family friendly\" etc. go into preferences — they are NOT\n"
             "  database fields and must never become filters.\n"
@@ -278,26 +279,35 @@ class GeminiProvider:
             raise RuntimeError("Gemini returned an empty answer")
         return text
 
-    def answer_general(self, query: str, context: str = "") -> str:
+    def answer_general(self, query: str, context: str = "", query_type: str = "GENERAL_INFO") -> str:
         """Answer a general automotive knowledge question.
 
-        Used only for GENERAL_INFO / GENERAL_COMPARISON / not-in-inventory
+        Used only for GENERAL_INFO / TROUBLESHOOTING / GENERAL_COMPARISON / not-in-inventory
         vehicle questions. This is content generation, never intent parsing:
         it must not claim showroom availability or invent database records.
         """
         if not self.is_available:
             raise RuntimeError("Gemini API key not configured")
 
+        troubleshooting_instruction = (
+            "If the customer is asking about an automotive problem, symptom, or troubleshooting (e.g. car slow, vibrating/shaking, noise, overheating, mileage drop):\n"
+            "- Understand the symptom.\n"
+            "- Explain common possible causes clearly and objectively.\n"
+            "- Explain what the owner can safely check.\n"
+            "- Explain when professional inspection is needed.\n"
+            "- Avoid declaring a definitive diagnosis without an in-person physical inspection.\n"
+            "- SAFETY FIRST: For dangerous issues (brake problems, severe overheating, smoke, fuel leaks, loss of steering, highway emergencies), prioritize safety and urgently recommend safely stopping and seeking professional roadside assistance.\n\n"
+        )
         system_prompt = (
-            "You are YourSpinny, a helpful automotive knowledge assistant.\n"
-            "Answer the customer's question using GENERAL automotive knowledge.\n"
-            "STRICT RULES:\n"
+            "You are YourSpinny, an expert Automobile AI Assistant for spinnyWheels.\n"
+            "Answer the customer's question thoroughly and accurately using GENERAL automotive knowledge.\n"
+            + (troubleshooting_instruction if query_type == "TROUBLESHOOTING" else "")
+            + "STRICT RULES:\n"
             "- Never claim a vehicle is in stock, available, or reserved — you have no\n"
-            "  access to the showroom database.\n"
-            "- Never invent database fields (mileage figures for specific stock,\n"
-            "  horsepower of specific inventory rows, colours, previous owners).\n"
+            "  access to the showroom database in this mode.\n"
+            "- Never invent showroom database fields.\n"
             "- If exact figures vary by variant, say so instead of guessing.\n"
-            "- Plain text only, no markdown tables. Maximum 8 sentences, concise and factual."
+            "- Plain text only, friendly, clear, and professional. Maximum 8 sentences."
         )
         user_content = f"Question: {query}"
         if context:

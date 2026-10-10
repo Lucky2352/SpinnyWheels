@@ -82,21 +82,21 @@ class OutOfScopeTests(TestCase):
 
         self.assertEqual(result["query_type"], "OUT_OF_SCOPE")
         self.assertEqual(result["results"], [])
-        self.assertIn("automotive assistant", result["answer"])
+        self.assertIn("automobile AI assistant", result["answer"])
 
     def test_joke_is_out_of_scope(self):
         result, _, _ = self.ask("Tell me a joke")
 
         self.assertEqual(result["query_type"], "OUT_OF_SCOPE")
         self.assertEqual(result["results"], [])
-        self.assertIn("automotive assistant", result["answer"])
+        self.assertIn("automobile AI assistant", result["answer"])
 
     def test_cricket_match_is_out_of_scope(self):
         result, _, _ = self.ask("Who won the cricket match?")
 
         self.assertEqual(result["query_type"], "OUT_OF_SCOPE")
         self.assertEqual(result["results"], [])
-        self.assertIn("automotive assistant", result["answer"])
+        self.assertIn("automobile AI assistant", result["answer"])
 
     def test_automatic_transmission_is_not_out_of_scope(self):
         result, _, _ = self.ask("What is automatic transmission?")

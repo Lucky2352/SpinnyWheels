@@ -72,17 +72,54 @@
                 <div class="flex flex-wrap gap-2" data-requirement-chips></div>
             </div>
 
-            <div data-answer-wrap class="mb-5 rounded-lg border border-primary-100 bg-primary-50 p-4">
-                <h3 class="text-sm font-semibold text-primary-900">YourSpinny</h3>
-                <div data-answer class="mt-2 text-sm text-slate-700 whitespace-pre-line"></div>
-            </div>
-
             <div data-recommendation-wrap class="hidden mb-6">
                 <div class="mb-3 flex items-center gap-2">
-                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">My pick for you</span>
-                    <span class="text-sm text-slate-500">One best match from live inventory</span>
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700">Car Details</span>
+                    <span class="text-sm text-slate-500">Showroom vehicle details</span>
                 </div>
                 <div data-recommendation-slot class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+            </div>
+
+            <div data-answer-wrap class="mb-6 rounded-xl border border-primary-100 bg-gradient-to-b from-primary-50/70 to-white p-5 shadow-sm space-y-4">
+                <div data-summary-wrap class="hidden border-b border-primary-100 pb-3">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 text-white text-[10px] font-bold">⚡</span>
+                        <h3 class="text-xs font-bold tracking-wider uppercase text-primary-900">Answer Summary</h3>
+                    </div>
+                    <p data-summary class="text-sm font-medium text-slate-800 leading-relaxed"></p>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <h3 class="text-xs font-bold tracking-wider uppercase text-slate-500">Answer</h3>
+                    </div>
+                    <div data-answer class="text-sm text-slate-700 leading-relaxed whitespace-pre-line"></div>
+                </div>
+
+                <div data-speech-controls class="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-medium text-slate-500 mr-1">Voice:</span>
+                    <button type="button" data-speech-play class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-primary-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.76l-4.146-3.11H2a1 1 0 01-1-1V7.35a1 1 0 011-1h2.237l4.146-3.11a1 1 0 011-.164zM15.293 4.293a1 1 0 011.414 0 10 10 0 010 11.414 1 1 0 01-1.414-1.414 8 8 0 000-8.586 1 1 0 010-1.414zM13.293 6.293a1 1 0 011.414 0 6 6 0 010 7.414 1 1 0 11-1.414-1.414 4 4 0 000-4.586 1 1 0 010-1.414z"/></svg>
+                        <span>Listen</span>
+                    </button>
+                    <button type="button" data-speech-pause class="hidden inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        <span>Pause</span>
+                    </button>
+                    <button type="button" data-speech-resume class="hidden inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                        <span>Resume</span>
+                    </button>
+                    <button type="button" data-speech-stop class="hidden inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"/></svg>
+                        <span>Stop</span>
+                    </button>
+                    <button type="button" data-speech-replay class="hidden inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                        <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span>Replay</span>
+                    </button>
+                    <span data-speech-status class="hidden text-xs text-primary-600 font-medium ml-2 animate-pulse"></span>
+                </div>
             </div>
 
             <div data-results-wrap>
@@ -210,9 +247,21 @@
         const retryButton = document.querySelector('[data-retry]');
         const clearContextButton = document.querySelector('[data-clear-context]');
 
+        const summaryWrap = document.querySelector('[data-summary-wrap]');
+        const summaryEl = document.querySelector('[data-summary]');
+        const speechControls = document.querySelector('[data-speech-controls]');
+        const btnSpeechPlay = document.querySelector('[data-speech-play]');
+        const btnSpeechPause = document.querySelector('[data-speech-pause]');
+        const btnSpeechResume = document.querySelector('[data-speech-resume]');
+        const btnSpeechStop = document.querySelector('[data-speech-stop]');
+        const btnSpeechReplay = document.querySelector('[data-speech-replay]');
+        const speechStatus = document.querySelector('[data-speech-status]');
+
         const selected = new Map();
         let requestInFlight = false;
         let lastQuery = '';
+        let currentUtterance = null;
+        let currentSpeechText = '';
         // Previous-turn filters sent with every request so follow-ups like
         // "only automatic" narrow the previous result set.
         let contextFilters = {};
@@ -221,7 +270,9 @@
             SEARCH: 'Search results',
             RECOMMENDATION: 'Recommendation',
             COMPARISON: 'Comparison',
-            INFO: 'Vehicle info',
+            INFO: 'Automotive Info',
+            TROUBLESHOOTING: 'Troubleshooting',
+            CLARIFICATION: 'Clarification',
         };
 
         function filterChips(filters) {
@@ -389,27 +440,162 @@
             compareWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+        function stopSpeech() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            currentUtterance = null;
+            if (btnSpeechPlay) btnSpeechPlay.classList.remove('hidden');
+            if (btnSpeechPause) btnSpeechPause.classList.add('hidden');
+            if (btnSpeechResume) btnSpeechResume.classList.add('hidden');
+            if (btnSpeechStop) btnSpeechStop.classList.add('hidden');
+            if (btnSpeechReplay) btnSpeechReplay.classList.add('hidden');
+            if (speechStatus) {
+                speechStatus.classList.add('hidden');
+                speechStatus.textContent = '';
+            }
+        }
+
+        function playSpeech() {
+            if (!('speechSynthesis' in window) || !currentSpeechText) return;
+            window.speechSynthesis.cancel();
+
+            currentUtterance = new SpeechSynthesisUtterance(currentSpeechText);
+            currentUtterance.rate = 1.0;
+            currentUtterance.pitch = 1.0;
+            currentUtterance.lang = 'en-US';
+
+            currentUtterance.onstart = function() {
+                if (btnSpeechPlay) btnSpeechPlay.classList.add('hidden');
+                if (btnSpeechPause) btnSpeechPause.classList.remove('hidden');
+                if (btnSpeechResume) btnSpeechResume.classList.add('hidden');
+                if (btnSpeechStop) btnSpeechStop.classList.remove('hidden');
+                if (btnSpeechReplay) btnSpeechReplay.classList.remove('hidden');
+                if (speechStatus) {
+                    speechStatus.textContent = 'Speaking...';
+                    speechStatus.classList.remove('hidden');
+                }
+            };
+
+            currentUtterance.onpause = function() {
+                if (btnSpeechPause) btnSpeechPause.classList.add('hidden');
+                if (btnSpeechResume) btnSpeechResume.classList.remove('hidden');
+                if (btnSpeechStop) btnSpeechStop.classList.remove('hidden');
+                if (speechStatus) {
+                    speechStatus.textContent = 'Paused';
+                    speechStatus.classList.remove('hidden');
+                }
+            };
+
+            currentUtterance.onresume = function() {
+                if (btnSpeechResume) btnSpeechResume.classList.add('hidden');
+                if (btnSpeechPause) btnSpeechPause.classList.remove('hidden');
+                if (btnSpeechStop) btnSpeechStop.classList.remove('hidden');
+                if (speechStatus) {
+                    speechStatus.textContent = 'Speaking...';
+                    speechStatus.classList.remove('hidden');
+                }
+            };
+
+            currentUtterance.onend = function() {
+                if (btnSpeechPlay) btnSpeechPlay.classList.remove('hidden');
+                if (btnSpeechPause) btnSpeechPause.classList.add('hidden');
+                if (btnSpeechResume) btnSpeechResume.classList.add('hidden');
+                if (btnSpeechStop) btnSpeechStop.classList.add('hidden');
+                if (btnSpeechReplay) btnSpeechReplay.classList.remove('hidden');
+                if (speechStatus) {
+                    speechStatus.classList.add('hidden');
+                    speechStatus.textContent = '';
+                }
+                currentUtterance = null;
+            };
+
+            currentUtterance.onerror = function() {
+                stopSpeech();
+            };
+
+            window.speechSynthesis.speak(currentUtterance);
+        }
+
+        function pauseSpeech() {
+            if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+                window.speechSynthesis.pause();
+                if (btnSpeechPause) btnSpeechPause.classList.add('hidden');
+                if (btnSpeechResume) btnSpeechResume.classList.remove('hidden');
+                if (speechStatus) {
+                    speechStatus.textContent = 'Paused';
+                    speechStatus.classList.remove('hidden');
+                }
+            }
+        }
+
+        function resumeSpeech() {
+            if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                if (btnSpeechResume) btnSpeechResume.classList.add('hidden');
+                if (btnSpeechPause) btnSpeechPause.classList.remove('hidden');
+                if (speechStatus) {
+                    speechStatus.textContent = 'Speaking...';
+                    speechStatus.classList.remove('hidden');
+                }
+            }
+        }
+
         function renderResult(result) {
+            stopSpeech();
             grid.innerHTML = '';
             recommendationSlot.innerHTML = '';
             closestSlot.innerHTML = '';
             compareWrap.classList.add('hidden');
 
-            answerEl.textContent = result.answer || '';
-            answerWrap.classList.toggle('hidden', !result.answer);
+            const fullAnswer = result.answer_text || result.answer || '';
+            answerEl.textContent = fullAnswer;
+            answerWrap.classList.toggle('hidden', !fullAnswer);
 
-            const label = INTENT_LABELS[result.intent];
-            if (label) {
-                intentBadge.textContent = label;
+            const summaryText = result.answer_summary || '';
+            if (summaryText && summaryText.trim() && summaryText !== fullAnswer) {
+                summaryEl.textContent = summaryText;
+                summaryWrap.classList.remove('hidden');
+            } else {
+                summaryWrap.classList.add('hidden');
+                summaryEl.textContent = '';
+            }
+
+            currentSpeechText = result.speech_text || summaryText || fullAnswer || '';
+            if (speechControls) {
+                const canSpeak = Boolean(currentSpeechText && 'speechSynthesis' in window);
+                speechControls.classList.toggle('hidden', !canSpeak);
+            }
+
+            const qType = result.query_type;
+            const badgeLabel = (qType === 'TROUBLESHOOTING') ? 'Troubleshooting' :
+                               (qType === 'CLARIFICATION') ? 'Clarification' :
+                               (qType === 'GENERAL_INFO') ? 'Automotive Guide' :
+                               (INTENT_LABELS[result.intent] || 'YourSpinny');
+            if (badgeLabel) {
+                intentBadge.textContent = badgeLabel;
                 intentBadge.classList.remove('hidden');
-                resultTitle.textContent = label;
+                resultTitle.textContent = badgeLabel;
             } else {
                 intentBadge.classList.add('hidden');
                 resultTitle.textContent = 'YourSpinny';
             }
 
-            const isOutOfScope = result.query_type === 'OUT_OF_SCOPE';
+            const isOutOfScope = result.query_type === 'OUT_OF_SCOPE' || result.scope === 'non_automotive';
             if (isOutOfScope) {
+                recommendationWrap.classList.add('hidden');
+                resultsWrap.classList.add('hidden');
+                closestWrap.classList.add('hidden');
+                noResults.classList.add('hidden');
+                matchCount.textContent = '';
+                requirementChips.innerHTML = '';
+                selected.clear();
+                syncCompareBar();
+                ui.setContainerState(panel, 'content');
+                return;
+            }
+
+            if (!result.inventory_used) {
                 recommendationWrap.classList.add('hidden');
                 resultsWrap.classList.add('hidden');
                 closestWrap.classList.add('hidden');
@@ -427,10 +613,11 @@
 
             const results = Array.isArray(result.results) ? result.results : [];
 
-            if (result.intent === 'RECOMMENDATION' && result.recommendation) {
+            if (result.intent === 'RECOMMENDATION' && (result.recommendation || result.car_details)) {
                 recommendationWrap.classList.remove('hidden');
                 resultsWrap.classList.add('hidden');
-                recommendationSlot.appendChild(buildCard(result.recommendation));
+                const recCar = result.recommendation || result.car_details;
+                recommendationSlot.appendChild(buildCard(recCar));
                 matchCount.textContent = result.total_matches > 1
                     ? `picked from ${result.total_matches} matching cars`
                     : '1 matching car';
@@ -477,6 +664,8 @@
         async function submitQuery(event) {
             if (event) event.preventDefault();
             if (requestInFlight) return;
+
+            stopSpeech();
 
             const query = queryInput.value.trim();
             if (!query) {
@@ -554,12 +743,19 @@
             if (lastQuery) submitQuery();
         });
         clearContextButton.addEventListener('click', function() {
+            stopSpeech();
             contextFilters = {};
             queryInput.value = '';
             queryInput.focus();
             ui.setContainerState(panel, 'empty');
             ui.showToast('Started a new conversation.', 'info');
         });
+
+        if (btnSpeechPlay) btnSpeechPlay.addEventListener('click', playSpeech);
+        if (btnSpeechPause) btnSpeechPause.addEventListener('click', pauseSpeech);
+        if (btnSpeechResume) btnSpeechResume.addEventListener('click', resumeSpeech);
+        if (btnSpeechStop) btnSpeechStop.addEventListener('click', stopSpeech);
+        if (btnSpeechReplay) btnSpeechReplay.addEventListener('click', playSpeech);
 
         document.querySelector('[data-example-chips]').addEventListener('click', function(event) {
             const chip = event.target.closest('[data-example]');

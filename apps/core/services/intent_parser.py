@@ -21,6 +21,7 @@ VALID_QUERY_TYPES = {
     "VEHICLE_INFO",
     "GENERAL_INFO",
     "GENERAL_COMPARISON",
+    "TROUBLESHOOTING",
     "CLARIFICATION",
     "OUT_OF_SCOPE",
 }
@@ -33,6 +34,7 @@ QUERY_TYPE_TO_INTENT = {
     "VEHICLE_INFO": "INFO",
     "GENERAL_INFO": "INFO",
     "GENERAL_COMPARISON": "COMPARISON",
+    "TROUBLESHOOTING": "INFO",
     "CLARIFICATION": "UNKNOWN",
     "OUT_OF_SCOPE": "UNKNOWN",
 }
@@ -167,6 +169,7 @@ def empty_intent() -> dict:
     return {
         "intent": "SEARCH",
         "query_type": "INVENTORY_SEARCH",
+        "scope": "automotive",
         "normalized_question": "",
         "context_mode": "NONE",
         "confidence": 1.0,
@@ -432,13 +435,22 @@ def validate_intent(data) -> dict:
 
     # Resolve the canonical query type so it always agrees with the final
     # legacy action bucket (invalid/conflicting values are recomputed).
-    if raw_query_type and QUERY_TYPE_TO_INTENT[raw_query_type] == intent["intent"]:
+    if raw_query_type and raw_query_type in VALID_QUERY_TYPES:
+        intent["query_type"] = raw_query_type
+        intent["intent"] = QUERY_TYPE_TO_INTENT[raw_query_type]
+    elif raw_query_type and QUERY_TYPE_TO_INTENT.get(raw_query_type) == intent["intent"]:
         intent["query_type"] = raw_query_type
     else:
-        intent["query_type"] = INTENT_TO_QUERY_TYPE[intent["intent"]]
+        intent["query_type"] = INTENT_TO_QUERY_TYPE.get(intent["intent"], "INVENTORY_SEARCH")
 
-    if intent["query_type"] in {"GENERAL_INFO", "CLARIFICATION", "OUT_OF_SCOPE"}:
+    if intent["query_type"] in {"GENERAL_INFO", "GENERAL_COMPARISON", "TROUBLESHOOTING", "CLARIFICATION", "OUT_OF_SCOPE"}:
         intent["requires_inventory"] = False
+
+    scope = _coerce_str(data.get("scope"))
+    if scope in {"automotive", "non_automotive"}:
+        intent["scope"] = scope
+    else:
+        intent["scope"] = "non_automotive" if intent["query_type"] == "OUT_OF_SCOPE" else "automotive"
 
     return intent
 
@@ -887,8 +899,17 @@ def fallback_intent(
         words = text.split()
         if words and words[0].lower().strip("!,.") in {"hi", "hello", "hey", "hii"}:
             intent["intent"] = "UNKNOWN"
+            intent["query_type"] = "OUT_OF_SCOPE"
+            intent["requires_inventory"] = False
         else:
-            intent["intent"] = "SEARCH"
+            if re.search(r"\b(?:show|list|find|buy|purchase|stock|showroom|inventory|cars?\s+under|budget)\b", text, re.IGNORECASE):
+                intent["intent"] = "SEARCH"
+                intent["query_type"] = "INVENTORY_SEARCH"
+                intent["requires_inventory"] = True
+            else:
+                intent["intent"] = "INFO"
+                intent["query_type"] = "GENERAL_INFO"
+                intent["requires_inventory"] = False
         return intent
 
     intent["intent"] = "SEARCH"
